@@ -357,8 +357,9 @@
     const startShape = startBinding ? state.elements.find((e) => e.id === startBinding.elementId) : null;
     const endShape = endBinding ? state.elements.find((e) => e.id === endBinding.elementId) : null;
 
+    const lastIdx = arrow.points.length - 1;
     let pStart = { x: arrow.x + arrow.points[0][0], y: arrow.y + arrow.points[0][1] };
-    let pEnd = { x: arrow.x + arrow.points[1][0], y: arrow.y + arrow.points[1][1] };
+    let pEnd = { x: arrow.x + arrow.points[lastIdx][0], y: arrow.y + arrow.points[lastIdx][1] };
 
     // If start is bound, compute its center/fixed point
     let startAnchor = pStart;
@@ -412,13 +413,25 @@
       pEnd = endAnchor;
     }
 
-    // Update arrow root (x,y) and relative points
-    arrow.x = pStart.x;
-    arrow.y = pStart.y;
-    arrow.points = [
-      [0, 0],
-      [pEnd.x - pStart.x, pEnd.y - pStart.y],
-    ];
+    // Update arrow root (x,y) and relative points preserving intermediate points
+    if (arrow.points.length === 2) {
+      arrow.x = pStart.x;
+      arrow.y = pStart.y;
+      arrow.points = [
+        [0, 0],
+        [pEnd.x - pStart.x, pEnd.y - pStart.y],
+      ];
+    } else {
+      const dx = pStart.x - arrow.x;
+      const dy = pStart.y - arrow.y;
+      arrow.x = pStart.x;
+      arrow.y = pStart.y;
+      for (let i = 1; i < lastIdx; i++) {
+        arrow.points[i] = [arrow.points[i][0] - dx, arrow.points[i][1] - dy];
+      }
+      arrow.points[0] = [0, 0];
+      arrow.points[lastIdx] = [pEnd.x - pStart.x, pEnd.y - pStart.y];
+    }
   }
 
   /**
@@ -471,6 +484,101 @@
            `A ${r} ${r} 0 0 1 ${x} ${y + h - r} ` +
            `L ${x} ${y + r} ` +
            `A ${r} ${r} 0 0 1 ${x + r} ${y} Z`;
+  }
+
+  /**
+   * Draws custom arrowheads matching Excalidraw's exact geometry and types
+   */
+  function drawArrowhead(ctx, rc, tipX, tipY, angle, type, color, strokeWidth, roughOpts) {
+    if (!type || type === 'none') return;
+    const baseLen = Math.max(12, 14 + (strokeWidth - 1) * 2);
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    const bx = -dx;
+    const by = -dy;
+    const nx = -dy;
+    const ny = dx;
+
+    if (type === 'arrow') {
+      const arrowAngle = 0.45;
+      const barb1X = tipX + baseLen * Math.cos(angle + Math.PI - arrowAngle);
+      const barb1Y = tipY + baseLen * Math.sin(angle + Math.PI - arrowAngle);
+      const barb2X = tipX + baseLen * Math.cos(angle + Math.PI + arrowAngle);
+      const barb2Y = tipY + baseLen * Math.sin(angle + Math.PI + arrowAngle);
+      rc.line(tipX, tipY, barb1X, barb1Y, roughOpts);
+      rc.line(tipX, tipY, barb2X, barb2Y, roughOpts);
+    } else if (type === 'triangle' || type === 'triangle_outline') {
+      const triLen = baseLen * 0.95;
+      const halfW = triLen * 0.45;
+      const baseX = tipX + triLen * bx;
+      const baseY = tipY + triLen * by;
+      const c1 = [baseX + halfW * nx, baseY + halfW * ny];
+      const c2 = [baseX - halfW * nx, baseY - halfW * ny];
+      rc.polygon([[tipX, tipY], c1, c2], {
+        ...roughOpts,
+        fill: type === 'triangle' ? color : '#ffffff',
+        fillStyle: 'solid',
+      });
+    } else if (type === 'circle' || type === 'circle_outline') {
+      const diam = baseLen * 0.65;
+      const radius = diam / 2;
+      const cx = tipX + radius * bx;
+      const cy = tipY + radius * by;
+      rc.circle(cx, cy, diam, {
+        ...roughOpts,
+        fill: type === 'circle' ? color : '#ffffff',
+        fillStyle: 'solid',
+      });
+    } else if (type === 'bar') {
+      const barW = baseLen * 0.6;
+      rc.line(tipX + barW * nx, tipY + barW * ny, tipX - barW * nx, tipY - barW * ny, roughOpts);
+    } else if (type === 'diamond' || type === 'diamond_outline') {
+      const dLen = baseLen * 0.95;
+      const halfW = dLen * 0.4;
+      const midX = tipX + (dLen / 2) * bx;
+      const midY = tipY + (dLen / 2) * by;
+      const backX = tipX + dLen * bx;
+      const backY = tipY + dLen * by;
+      const c1 = [midX + halfW * nx, midY + halfW * ny];
+      const c2 = [midX - halfW * nx, midY - halfW * ny];
+      rc.polygon([[tipX, tipY], c1, [backX, backY], c2], {
+        ...roughOpts,
+        fill: type === 'diamond' ? color : '#ffffff',
+        fillStyle: 'solid',
+      });
+    } else if (type === 'crowfoot_many') {
+      const forkLen = baseLen * 0.95;
+      const halfW = forkLen * 0.45;
+      const baseX = tipX + forkLen * bx;
+      const baseY = tipY + forkLen * by;
+      const left = [baseX + halfW * nx, baseY + halfW * ny];
+      const right = [baseX - halfW * nx, baseY - halfW * ny];
+      rc.line(tipX, tipY, left[0], left[1], roughOpts);
+      rc.line(tipX, tipY, right[0], right[1], roughOpts);
+      rc.line(tipX, tipY, baseX, baseY, roughOpts);
+    } else if (type === 'crowfoot_one') {
+      const barW = baseLen * 0.55;
+      const b1X = tipX + (baseLen * 0.35) * bx;
+      const b1Y = tipY + (baseLen * 0.35) * by;
+      const b2X = tipX + (baseLen * 0.75) * bx;
+      const b2Y = tipY + (baseLen * 0.75) * by;
+      rc.line(b1X + barW * nx, b1Y + barW * ny, b1X - barW * nx, b1Y - barW * ny, roughOpts);
+      rc.line(b2X + barW * nx, b2Y + barW * ny, b2X - barW * nx, b2Y - barW * ny, roughOpts);
+    } else if (type === 'crowfoot_one_or_many') {
+      const forkLen = baseLen * 0.95;
+      const halfW = forkLen * 0.45;
+      const baseX = tipX + forkLen * bx;
+      const baseY = tipY + forkLen * by;
+      const left = [baseX + halfW * nx, baseY + halfW * ny];
+      const right = [baseX - halfW * nx, baseY - halfW * ny];
+      rc.line(tipX, tipY, left[0], left[1], roughOpts);
+      rc.line(tipX, tipY, right[0], right[1], roughOpts);
+      rc.line(tipX, tipY, baseX, baseY, roughOpts);
+      const barW = baseLen * 0.55;
+      const barX = tipX + (baseLen * 1.1) * bx;
+      const barY = tipY + (baseLen * 1.1) * by;
+      rc.line(barX + barW * nx, barY + barW * ny, barX - barW * nx, barY - barW * ny, roughOpts);
+    }
   }
 
   /**
@@ -544,65 +652,96 @@
       const h = Math.abs(el.height);
       rc.ellipse(cx, cy, w, h, roughOpts);
       drawContainerText(ctx, el);
-    } else if (el.type === 'line') {
-      const p1 = [el.x + el.points[0][0], el.y + el.points[0][1]];
-      const p2 = [el.x + el.points[1][0], el.y + el.points[1][1]];
-      rc.line(p1[0], p1[1], p2[0], p2[1], roughOpts);
-    } else if (el.type === 'arrow') {
-      const p1 = [el.x + el.points[0][0], el.y + el.points[0][1]];
-      const p2 = [el.x + el.points[1][0], el.y + el.points[1][1]];
+    } else if (el.type === 'line' || el.type === 'arrow') {
+      const absPoints = el.points.map((pt) => [el.x + pt[0], el.y + pt[1]]);
       const arrowType = el.arrowType || 'straight';
-
       let endAngle = 0;
       let startAngle = 0;
 
-      if (arrowType === 'curved') {
-        const mx = (p1[0] + p2[0]) / 2;
-        const my = (p1[1] + p2[1]) / 2;
-        const dx = p2[0] - p1[0];
-        const dy = p2[1] - p1[1];
-        const dist = Math.hypot(dx, dy) || 1;
-        const curveOffset = Math.min(dist * 0.22, 45);
-        const nx = -dy / dist;
-        const ny = dx / dist;
-        const cx = mx + nx * curveOffset;
-        const cy = my + ny * curveOffset;
+      if (absPoints.length === 2) {
+        const p1 = absPoints[0];
+        const p2 = absPoints[1];
 
-        rc.curve([p1, [cx, cy], p2], roughOpts);
-        endAngle = Math.atan2(p2[1] - cy, p2[0] - cx);
-        startAngle = Math.atan2(p1[1] - cy, p1[0] - cx);
-      } else if (arrowType === 'elbow') {
-        const midX = (p1[0] + p2[0]) / 2;
-        const c1 = [midX, p1[1]];
-        const c2 = [midX, p2[1]];
-        rc.linearPath([p1, c1, c2, p2], roughOpts);
-        endAngle = Math.atan2(p2[1] - c2[1], p2[0] - c2[0]);
-        startAngle = Math.atan2(p1[1] - c1[1], p1[0] - c1[0]);
+        if (arrowType === 'curved') {
+          const mx = (p1[0] + p2[0]) / 2;
+          const my = (p1[1] + p2[1]) / 2;
+          const dx = p2[0] - p1[0];
+          const dy = p2[1] - p1[1];
+          const dist = Math.hypot(dx, dy) || 1;
+          const curveOffset = Math.min(dist * 0.22, 45);
+          const nx = -dy / dist;
+          const ny = dx / dist;
+          const cx = mx + nx * curveOffset;
+          const cy = my + ny * curveOffset;
+
+          rc.curve([p1, [cx, cy], p2], roughOpts);
+          endAngle = Math.atan2(p2[1] - cy, p2[0] - cx);
+          startAngle = Math.atan2(p1[1] - cy, p1[0] - cx);
+        } else if (arrowType === 'elbow') {
+          const midX = (p1[0] + p2[0]) / 2;
+          const c1 = [midX, p1[1]];
+          const c2 = [midX, p2[1]];
+          rc.linearPath([p1, c1, c2, p2], roughOpts);
+          endAngle = Math.atan2(p2[1] - c2[1], p2[0] - c2[0]);
+          startAngle = Math.atan2(p1[1] - c1[1], p1[0] - c1[0]);
+        } else {
+          rc.line(p1[0], p1[1], p2[0], p2[1], roughOpts);
+          endAngle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+          startAngle = Math.atan2(p1[1] - p2[1], p1[0] - p2[0]);
+        }
       } else {
-        // straight
-        rc.line(p1[0], p1[1], p2[0], p2[1], roughOpts);
-        endAngle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
-        startAngle = Math.atan2(p1[1] - p2[1], p1[0] - p2[0]);
+        // Multi-point linear element! (3 or more vertices)
+        if (arrowType === 'curved') {
+          rc.curve(absPoints, roughOpts);
+        } else if (arrowType === 'elbow') {
+          const elbowPath = [absPoints[0]];
+          for (let i = 0; i < absPoints.length - 1; i++) {
+            const pA = absPoints[i];
+            const pB = absPoints[i + 1];
+            const midX = (pA[0] + pB[0]) / 2;
+            elbowPath.push([midX, pA[1]]);
+            elbowPath.push([midX, pB[1]]);
+            elbowPath.push(pB);
+          }
+          rc.linearPath(elbowPath, roughOpts);
+        } else {
+          rc.linearPath(absPoints, roughOpts);
+        }
+
+        const last = absPoints.length - 1;
+        endAngle = Math.atan2(absPoints[last][1] - absPoints[last - 1][1], absPoints[last][0] - absPoints[last - 1][0]);
+        startAngle = Math.atan2(absPoints[0][1] - absPoints[1][1], absPoints[0][0] - absPoints[1][0]);
       }
 
-      // Draw end arrowhead
-      if (el.endArrowhead !== 'none') {
-        const leftX = p2[0] - ARROW_HEAD_LENGTH * Math.cos(endAngle - ARROW_HEAD_ANGLE);
-        const leftY = p2[1] - ARROW_HEAD_LENGTH * Math.sin(endAngle - ARROW_HEAD_ANGLE);
-        const rightX = p2[0] - ARROW_HEAD_LENGTH * Math.cos(endAngle + ARROW_HEAD_ANGLE);
-        const rightY = p2[1] - ARROW_HEAD_LENGTH * Math.sin(endAngle + ARROW_HEAD_ANGLE);
-        rc.line(p2[0], p2[1], leftX, leftY, roughOpts);
-        rc.line(p2[0], p2[1], rightX, rightY, roughOpts);
-      }
-
-      // Draw start arrowhead if enabled
-      if (el.startArrowhead === 'arrow') {
-        const leftX = p1[0] - ARROW_HEAD_LENGTH * Math.cos(startAngle - ARROW_HEAD_ANGLE);
-        const leftY = p1[1] - ARROW_HEAD_LENGTH * Math.sin(startAngle - ARROW_HEAD_ANGLE);
-        const rightX = p1[0] - ARROW_HEAD_LENGTH * Math.cos(startAngle + ARROW_HEAD_ANGLE);
-        const rightY = p1[1] - ARROW_HEAD_LENGTH * Math.sin(startAngle + ARROW_HEAD_ANGLE);
-        rc.line(p1[0], p1[1], leftX, leftY, roughOpts);
-        rc.line(p1[0], p1[1], rightX, rightY, roughOpts);
+      // Draw custom arrowheads if type === 'arrow'
+      if (el.type === 'arrow') {
+        const last = absPoints.length - 1;
+        if (el.startArrowhead && el.startArrowhead !== 'none') {
+          drawArrowhead(
+            ctx,
+            rc,
+            absPoints[0][0],
+            absPoints[0][1],
+            startAngle,
+            el.startArrowhead,
+            el.strokeColor || '#1e1e1e',
+            el.strokeWidth || 2,
+            roughOpts
+          );
+        }
+        if (el.endArrowhead && el.endArrowhead !== 'none') {
+          drawArrowhead(
+            ctx,
+            rc,
+            absPoints[last][0],
+            absPoints[last][1],
+            endAngle,
+            el.endArrowhead,
+            el.strokeColor || '#1e1e1e',
+            el.strokeWidth || 2,
+            roughOpts
+          );
+        }
       }
     } else if (el.type === 'text') {
       drawTextElement(ctx, el);
@@ -735,27 +874,75 @@
         const el = state.elements.find((e) => e.id === id);
         if (!el) continue;
 
-        const bounds = getElementBounds(el);
-        interactiveCtx.save();
-        interactiveCtx.strokeStyle = '#6965db';
-        interactiveCtx.lineWidth = 1.5 / state.zoom;
-        interactiveCtx.setLineDash([]);
-        interactiveCtx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+        if (el.type === 'arrow' || el.type === 'line') {
+          // Linear Element: Bounding Box, Midpoint Handles and Circular Vertex Handles (Excalidraw style)
+          const bounds = getElementBounds(el);
+          interactiveCtx.save();
+          interactiveCtx.strokeStyle = 'rgba(105, 101, 219, 0.45)';
+          interactiveCtx.lineWidth = 1 / state.zoom;
+          interactiveCtx.setLineDash([]);
+          interactiveCtx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
-        // Draw resize handles
-        interactiveCtx.setLineDash([]);
-        interactiveCtx.fillStyle = '#ffffff';
-        interactiveCtx.strokeStyle = '#6965db';
-        interactiveCtx.lineWidth = 1.5 / state.zoom;
+          // Corner handles on bounds
+          const handles = getHandleCoordinates(bounds);
+          const handleSize = 6 / state.zoom;
+          interactiveCtx.fillStyle = '#ffffff';
+          interactiveCtx.strokeStyle = '#6965db';
+          interactiveCtx.lineWidth = 1.2 / state.zoom;
+          for (const h of Object.values(handles)) {
+            interactiveCtx.fillRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+            interactiveCtx.strokeRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+          }
 
-        const handles = getHandleCoordinates(bounds);
-        const handleSize = 7 / state.zoom;
+          const absPts = el.points.map((p) => ({ x: el.x + p[0], y: el.y + p[1] }));
 
-        for (const h of Object.values(handles)) {
-          interactiveCtx.fillRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
-          interactiveCtx.strokeRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+          // Midpoint handles (insert new vertex by dragging)
+          for (let i = 0; i < absPts.length - 1; i++) {
+            const mx = (absPts[i].x + absPts[i + 1].x) / 2;
+            const my = (absPts[i].y + absPts[i + 1].y) / 2;
+            interactiveCtx.fillStyle = '#ffffff';
+            interactiveCtx.strokeStyle = 'rgba(105, 101, 219, 0.7)';
+            interactiveCtx.lineWidth = 1.2 / state.zoom;
+            interactiveCtx.beginPath();
+            interactiveCtx.arc(mx, my, 3.5 / state.zoom, 0, Math.PI * 2);
+            interactiveCtx.fill();
+            interactiveCtx.stroke();
+          }
+
+          // Vertex handles (movable control points/dots) - exactly matching Image 2 & 5!
+          for (let i = 0; i < absPts.length; i++) {
+            interactiveCtx.fillStyle = '#ffffff';
+            interactiveCtx.strokeStyle = '#4c6ef5';
+            interactiveCtx.lineWidth = 1.8 / state.zoom;
+            interactiveCtx.beginPath();
+            interactiveCtx.arc(absPts[i].x, absPts[i].y, 5.5 / state.zoom, 0, Math.PI * 2);
+            interactiveCtx.fill();
+            interactiveCtx.stroke();
+          }
+
+          interactiveCtx.restore();
+        } else {
+          // Standard Box Elements (Rectangles, Ellipses, Sticky Notes, Diamonds)
+          const bounds = getElementBounds(el);
+          interactiveCtx.save();
+          interactiveCtx.strokeStyle = '#6965db';
+          interactiveCtx.lineWidth = 1.5 / state.zoom;
+          interactiveCtx.setLineDash([]);
+          interactiveCtx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+          interactiveCtx.fillStyle = '#ffffff';
+          interactiveCtx.strokeStyle = '#6965db';
+          interactiveCtx.lineWidth = 1.5 / state.zoom;
+
+          const handles = getHandleCoordinates(bounds);
+          const handleSize = 7 / state.zoom;
+
+          for (const h of Object.values(handles)) {
+            interactiveCtx.fillRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+            interactiveCtx.strokeRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+          }
+          interactiveCtx.restore();
         }
-        interactiveCtx.restore();
       }
     }
 
@@ -774,14 +961,21 @@
 
   function getElementBounds(el) {
     if (el.type === 'arrow' || el.type === 'line') {
-      const p1 = { x: el.x + el.points[0][0], y: el.y + el.points[0][1] };
-      const p2 = { x: el.x + el.points[1][0], y: el.y + el.points[1][1] };
-      let minX = Math.min(p1.x, p2.x);
-      let minY = Math.min(p1.y, p2.y);
-      let maxX = Math.max(p1.x, p2.x);
-      let maxY = Math.max(p1.y, p2.y);
-
-      if (el.type === 'arrow' && el.arrowType === 'curved') {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const pt of el.points) {
+        const px = el.x + pt[0];
+        const py = el.y + pt[1];
+        if (px < minX) minX = px;
+        if (py < minY) minY = py;
+        if (px > maxX) maxX = px;
+        if (py > maxY) maxY = py;
+      }
+      if (el.type === 'arrow' && el.arrowType === 'curved' && el.points.length === 2) {
+        const p1 = { x: el.x + el.points[0][0], y: el.y + el.points[0][1] };
+        const p2 = { x: el.x + el.points[1][0], y: el.y + el.points[1][1] };
         const mx = (p1.x + p2.x) / 2;
         const my = (p1.y + p2.y) / 2;
         const dx = p2.x - p1.x;
@@ -795,8 +989,12 @@
         maxX = Math.max(maxX, cx);
         maxY = Math.max(maxY, cy);
       }
-
-      return { x: minX - 6, y: minY - 6, width: maxX - minX + 12, height: maxY - minY + 12 };
+      return {
+        x: minX - 8,
+        y: minY - 8,
+        width: Math.max(16, maxX - minX + 16),
+        height: Math.max(16, maxY - minY + 16),
+      };
     }
     const minX = Math.min(el.x, el.x + el.width);
     const minY = Math.min(el.y, el.y + el.height);
@@ -817,6 +1015,43 @@
 
   // --- Hit Testing ---
 
+  function hitTestLinearHandles(pt) {
+    if (state.selectedIds.size !== 1) return null;
+    const selectedId = Array.from(state.selectedIds)[0];
+    const el = state.elements.find((e) => e.id === selectedId);
+    if (!el || (el.type !== 'arrow' && el.type !== 'line')) return null;
+
+    const threshold = 10 / state.zoom;
+    const absPts = el.points.map((p) => ({ x: el.x + p[0], y: el.y + p[1] }));
+
+    // 1. Check existing vertex handles first
+    for (let i = 0; i < absPts.length; i++) {
+      if (distance(pt.x, pt.y, absPts[i].x, absPts[i].y) <= threshold) {
+        return {
+          type: 'vertex',
+          element: el,
+          pointIndex: i,
+        };
+      }
+    }
+
+    // 2. Check midpoint handles
+    for (let i = 0; i < absPts.length - 1; i++) {
+      const midX = (absPts[i].x + absPts[i + 1].x) / 2;
+      const midY = (absPts[i].y + absPts[i + 1].y) / 2;
+      if (distance(pt.x, pt.y, midX, midY) <= threshold) {
+        return {
+          type: 'midpoint',
+          element: el,
+          insertIndex: i + 1,
+          point: { x: midX, y: midY },
+        };
+      }
+    }
+
+    return null;
+  }
+
   function hitTestElement(el, pt) {
     if (el.type === 'rectangle' || el.type === 'stickynote' || el.type === 'diamond' || el.type === 'ellipse' || el.type === 'text') {
       const minX = Math.min(el.x, el.x + el.width);
@@ -825,11 +1060,12 @@
       const maxY = Math.max(el.y, el.y + el.height);
       return pt.x >= minX - 4 && pt.x <= maxX + 4 && pt.y >= minY - 4 && pt.y <= maxY + 4;
     } else if (el.type === 'arrow' || el.type === 'line') {
-      const p1 = { x: el.x + el.points[0][0], y: el.y + el.points[0][1] };
-      const p2 = { x: el.x + el.points[1][0], y: el.y + el.points[1][1] };
-      // Distance from point to line segment
-      const d = distToSegment(pt, p1, p2);
-      return d <= 8;
+      const pts = el.points.map((p) => ({ x: el.x + p[0], y: el.y + p[1] }));
+      for (let i = 0; i < pts.length - 1; i++) {
+        const d = distToSegment(pt, pts[i], pts[i + 1]);
+        if (d <= 10 / state.zoom) return true;
+      }
+      return false;
     }
     return false;
   }
@@ -967,6 +1203,30 @@
     }
 
     // Tool: Selection
+    if (state.activeTool === 'selection') {
+      const handleHit = hitTestLinearHandles(scenePt);
+      if (handleHit) {
+        if (handleHit.type === 'midpoint') {
+          const el = handleHit.element;
+          const newPt = [scenePt.x - el.x, scenePt.y - el.y];
+          el.points.splice(handleHit.insertIndex, 0, newPt);
+          state.dragMode = 'dragPoint';
+          state.draggingPoint = {
+            elementId: el.id,
+            pointIndex: handleHit.insertIndex,
+          };
+        } else {
+          state.dragMode = 'dragPoint';
+          state.draggingPoint = {
+            elementId: handleHit.element.id,
+            pointIndex: handleHit.pointIndex,
+          };
+        }
+        renderAll();
+        return;
+      }
+    }
+
     const hitEl = hitTestTopElement(scenePt);
     if (hitEl) {
       if (!state.selectedIds.has(hitEl.id)) {
@@ -987,6 +1247,46 @@
 
   interactiveCanvas.addEventListener('pointermove', (e) => {
     const scenePt = screenToScene(e.clientX, e.clientY);
+
+    // Dragging point handle of arrow/line
+    if (state.dragMode === 'dragPoint' && state.draggingPoint) {
+      const el = state.elements.find((elItem) => elItem.id === state.draggingPoint.elementId);
+      if (el) {
+        const idx = state.draggingPoint.pointIndex;
+        let targetX = scenePt.x;
+        let targetY = scenePt.y;
+
+        // If dragging start or end point of an arrow, check for snap binding
+        if (el.type === 'arrow' && (idx === 0 || idx === el.points.length - 1)) {
+          const cand = findBindingTarget(scenePt, el.id);
+          state.bindingCandidate = cand;
+          if (cand) {
+            targetX = cand.snapPoint.x;
+            targetY = cand.snapPoint.y;
+            if (idx === 0) {
+              el.startBinding = {
+                elementId: cand.elementId,
+                fixedPoint: cand.fixedPoint,
+                gap: BASE_BINDING_GAP,
+              };
+            } else {
+              el.endBinding = {
+                elementId: cand.elementId,
+                fixedPoint: cand.fixedPoint,
+                gap: BASE_BINDING_GAP,
+              };
+            }
+          } else {
+            if (idx === 0) el.startBinding = null;
+            else el.endBinding = null;
+          }
+        }
+
+        el.points[idx] = [targetX - el.x, targetY - el.y];
+        renderAll();
+        return;
+      }
+    }
 
     // Pan Mode
     if (state.dragMode === 'pan') {
@@ -1011,7 +1311,18 @@
       renderInteractive();
     }
 
-    if (!state.isDragging) return;
+    if (!state.isDragging) {
+      if (state.activeTool === 'selection') {
+        const handleHit = hitTestLinearHandles(scenePt);
+        if (handleHit) {
+          interactiveCanvas.style.cursor = 'grab';
+        } else {
+          const hit = hitTestTopElement(scenePt);
+          interactiveCanvas.style.cursor = hit ? 'move' : 'default';
+        }
+      }
+      return;
+    }
 
     // Erase Mode
     if (state.dragMode === 'erase') {
@@ -1113,6 +1424,15 @@
     state.isDragging = false;
     const scenePt = screenToScene(e.clientX, e.clientY);
 
+    if (state.dragMode === 'dragPoint') {
+      saveHistory();
+      state.dragMode = null;
+      state.draggingPoint = null;
+      state.bindingCandidate = null;
+      renderAll();
+      return;
+    }
+
     if (state.dragMode === 'pan') {
       state.dragMode = null;
       interactiveCanvas.style.cursor = state.activeTool === 'hand' ? 'grab' : 'default';
@@ -1190,13 +1510,38 @@
     updatePropertiesPanel();
   });
 
-  // --- Double-click to Edit Text or Create Container Text ---
+  // --- Double-click to Edit Text or Create / Delete Linear Vertices ---
   interactiveCanvas.addEventListener('dblclick', (e) => {
     const scenePt = screenToScene(e.clientX, e.clientY);
     const hitEl = hitTestTopElement(scenePt);
 
     if (hitEl) {
-      if (hitEl.type === 'rectangle' || hitEl.type === 'diamond' || hitEl.type === 'ellipse' || hitEl.type === 'stickynote') {
+      if (hitEl.type === 'arrow' || hitEl.type === 'line') {
+        const handleHit = hitTestLinearHandles(scenePt);
+        if (handleHit && handleHit.type === 'vertex' && handleHit.pointIndex > 0 && handleHit.pointIndex < hitEl.points.length - 1) {
+          // Double-clicking an intermediate vertex removes it!
+          hitEl.points.splice(handleHit.pointIndex, 1);
+          saveHistory();
+          renderAll();
+          return;
+        }
+
+        // Double-clicking the line itself adds a new vertex at click point!
+        const absPts = hitEl.points.map((p) => ({ x: hitEl.x + p[0], y: hitEl.y + p[1] }));
+        let bestIdx = 1;
+        let minD = Infinity;
+        for (let i = 0; i < absPts.length - 1; i++) {
+          const d = distToSegment(scenePt, absPts[i], absPts[i + 1]);
+          if (d < minD) {
+            minD = d;
+            bestIdx = i + 1;
+          }
+        }
+        hitEl.points.splice(bestIdx, 0, [scenePt.x - hitEl.x, scenePt.y - hitEl.y]);
+        saveHistory();
+        renderAll();
+        return;
+      } else if (hitEl.type === 'rectangle' || hitEl.type === 'diamond' || hitEl.type === 'ellipse' || hitEl.type === 'stickynote') {
         openTextEditorForContainer(hitEl);
       } else if (hitEl.type === 'text') {
         openTextEditor(hitEl.x, hitEl.y, hitEl);
@@ -1446,6 +1791,35 @@
   window.addEventListener('keydown', (e) => {
     if (document.activeElement === textEditor) return;
 
+    // Arrowhead popover shortcuts (q, w, e, r)
+    const keyMap = { q: 'none', w: 'arrow', e: 'triangle', r: 'triangle_outline' };
+    const popStart = document.getElementById('popoverStartArrowhead');
+    const popEnd = document.getElementById('popoverEndArrowhead');
+    if (popStart && popStart.style.display !== 'none' && keyMap[e.key.toLowerCase()]) {
+      const head = keyMap[e.key.toLowerCase()];
+      state.startArrowhead = head;
+      for (const id of state.selectedIds) {
+        const el = state.elements.find((item) => item.id === id);
+        if (el && el.type === 'arrow') el.startArrowhead = head;
+      }
+      saveHistory();
+      renderAll();
+      closeAllArrowheadPopovers();
+      return;
+    }
+    if (popEnd && popEnd.style.display !== 'none' && keyMap[e.key.toLowerCase()]) {
+      const head = keyMap[e.key.toLowerCase()];
+      state.endArrowhead = head;
+      for (const id of state.selectedIds) {
+        const el = state.elements.find((item) => item.id === id);
+        if (el && el.type === 'arrow') el.endArrowhead = head;
+      }
+      saveHistory();
+      renderAll();
+      closeAllArrowheadPopovers();
+      return;
+    }
+
     if (e.code === 'Space' && !state.spacePressed) {
       state.spacePressed = true;
       interactiveCanvas.style.cursor = 'grab';
@@ -1545,6 +1919,44 @@
     }
   }
 
+  const ARROWHEAD_ICONS = {
+    start: {
+      none: `<svg width="22" height="22" viewBox="0 0 24 24"><line x1="5" y1="8" x2="11" y2="16" stroke="currentColor" stroke-width="1.8"/><line x1="11" y1="8" x2="5" y2="16" stroke="currentColor" stroke-width="1.8"/><line x1="11" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      arrow: `<svg width="22" height="22" viewBox="0 0 24 24"><path d="M20 12H4M11 5L4 12l7 7" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>`,
+      triangle: `<svg width="22" height="22" viewBox="0 0 24 24"><polygon points="4,12 12,6 12,18" fill="currentColor"/><line x1="12" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      triangle_outline: `<svg width="22" height="22" viewBox="0 0 24 24"><polygon points="4,12 12,6 12,18" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="12" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      circle: `<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4" fill="currentColor"/><line x1="12" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      circle_outline: `<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="12" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      bar: `<svg width="22" height="22" viewBox="0 0 24 24"><line x1="5" y1="6" x2="5" y2="18" stroke="currentColor" stroke-width="2"/><line x1="5" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      diamond: `<svg width="22" height="22" viewBox="0 0 24 24"><polygon points="3,12 8,7 13,12 8,17" fill="currentColor"/><line x1="13" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      diamond_outline: `<svg width="22" height="22" viewBox="0 0 24 24"><polygon points="3,12 8,7 13,12 8,17" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="13" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      crowfoot_many: `<svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 6L4 12l8 6" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      crowfoot_one: `<svg width="22" height="22" viewBox="0 0 24 24"><line x1="5" y1="6" x2="5" y2="18" stroke="currentColor" stroke-width="1.8"/><line x1="9" y1="6" x2="9" y2="18" stroke="currentColor" stroke-width="1.8"/><line x1="5" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      crowfoot_one_or_many: `<svg width="22" height="22" viewBox="0 0 24 24"><path d="M11 6L4 12l7 6" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/><line x1="15" y1="6" x2="15" y2="18" stroke="currentColor" stroke-width="1.8"/></svg>`,
+    },
+    end: {
+      none: `<svg width="22" height="22" viewBox="0 0 24 24"><line x1="3" y1="12" x2="13" y2="12" stroke="currentColor" stroke-width="1.8"/><line x1="13" y1="8" x2="19" y2="16" stroke="currentColor" stroke-width="1.8"/><line x1="19" y1="8" x2="13" y2="16" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      arrow: `<svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 12h16M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>`,
+      triangle: `<svg width="22" height="22" viewBox="0 0 24 24"><polygon points="20,12 12,6 12,18" fill="currentColor"/><line x1="4" y1="12" x2="12" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      triangle_outline: `<svg width="22" height="22" viewBox="0 0 24 24"><polygon points="20,12 12,6 12,18" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="4" y1="12" x2="12" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      circle: `<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="16" cy="12" r="4" fill="currentColor"/><line x1="4" y1="12" x2="12" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      circle_outline: `<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="16" cy="12" r="4" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="4" y1="12" x2="12" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      bar: `<svg width="22" height="22" viewBox="0 0 24 24"><line x1="19" y1="6" x2="19" y2="18" stroke="currentColor" stroke-width="2"/><line x1="4" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      diamond: `<svg width="22" height="22" viewBox="0 0 24 24"><polygon points="21,12 16,7 11,12 16,17" fill="currentColor"/><line x1="4" y1="12" x2="11" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      diamond_outline: `<svg width="22" height="22" viewBox="0 0 24 24"><polygon points="21,12 16,7 11,12 16,17" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="4" y1="12" x2="11" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      crowfoot_many: `<svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 6l8 6-8 6" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      crowfoot_one: `<svg width="22" height="22" viewBox="0 0 24 24"><line x1="15" y1="6" x2="15" y2="18" stroke="currentColor" stroke-width="1.8"/><line x1="19" y1="6" x2="19" y2="18" stroke="currentColor" stroke-width="1.8"/><line x1="4" y1="12" x2="15" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>`,
+      crowfoot_one_or_many: `<svg width="22" height="22" viewBox="0 0 24 24"><path d="M13 6l7 6-7 6" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/><line x1="9" y1="6" x2="9" y2="18" stroke="currentColor" stroke-width="1.8"/></svg>`,
+    },
+  };
+
+  function updateArrowheadTriggerButton(side, headType) {
+    const btn = side === 'start' ? document.getElementById('btnStartArrowhead') : document.getElementById('btnEndArrowhead');
+    if (!btn) return;
+    const icon = (ARROWHEAD_ICONS[side] && ARROWHEAD_ICONS[side][headType]) || ARROWHEAD_ICONS[side].none;
+    btn.innerHTML = icon;
+  }
+
   function updatePropertiesPanel() {
     const selectedElements = state.elements.filter((e) => state.selectedIds.has(e.id));
     const target = selectedElements[0] || null;
@@ -1631,11 +2043,17 @@
       b.classList.toggle('active', b.dataset.val === curArrowType);
     });
 
-    const curStartHead = target ? target.startArrowhead : state.startArrowhead;
-    document.getElementById('btnToggleStartHead').classList.toggle('active', curStartHead === 'arrow');
+    const curStartHead = target ? (target.startArrowhead || 'none') : (state.startArrowhead || 'none');
+    const curEndHead = target ? (target.endArrowhead || 'none') : (state.endArrowhead || 'arrow');
+    updateArrowheadTriggerButton('start', curStartHead);
+    updateArrowheadTriggerButton('end', curEndHead);
 
-    const curEndHead = target ? target.endArrowhead : state.endArrowhead;
-    document.getElementById('btnToggleEndHead').classList.toggle('active', curEndHead !== 'none');
+    document.querySelectorAll('#popoverStartArrowhead .arrowhead-opt-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.head === curStartHead);
+    });
+    document.querySelectorAll('#popoverEndArrowhead .arrowhead-opt-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.head === curEndHead);
+    });
 
     const curRound = target ? target.roundness : state.roundness;
     document.querySelectorAll('#edgesGroup .icon-btn').forEach((b) => {
@@ -1767,27 +2185,88 @@
     updatePropertiesPanel();
   });
 
-  // Arrowheads Toggles
-  document.getElementById('btnToggleStartHead').addEventListener('click', () => {
-    state.startArrowhead = state.startArrowhead === 'arrow' ? 'none' : 'arrow';
-    for (const id of state.selectedIds) {
-      const el = state.elements.find((e) => e.id === id);
-      if (el && el.type === 'arrow') el.startArrowhead = state.startArrowhead;
+  // Arrowhead Popovers & Pickers
+  function closeAllArrowheadPopovers() {
+    const popStart = document.getElementById('popoverStartArrowhead');
+    const popEnd = document.getElementById('popoverEndArrowhead');
+    if (popStart) popStart.style.display = 'none';
+    if (popEnd) popEnd.style.display = 'none';
+    document.getElementById('btnStartArrowhead')?.classList.remove('open');
+    document.getElementById('btnEndArrowhead')?.classList.remove('open');
+  }
+
+  document.getElementById('btnStartArrowhead')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const pop = document.getElementById('popoverStartArrowhead');
+    const isShown = pop.style.display !== 'none';
+    closeAllArrowheadPopovers();
+    if (!isShown) {
+      pop.style.display = 'flex';
+      document.getElementById('btnStartArrowhead').classList.add('open');
     }
-    saveHistory();
-    renderAll();
-    updatePropertiesPanel();
   });
 
-  document.getElementById('btnToggleEndHead').addEventListener('click', () => {
-    state.endArrowhead = state.endArrowhead === 'none' ? 'arrow' : 'none';
+  document.getElementById('btnEndArrowhead')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const pop = document.getElementById('popoverEndArrowhead');
+    const isShown = pop.style.display !== 'none';
+    closeAllArrowheadPopovers();
+    if (!isShown) {
+      pop.style.display = 'flex';
+      document.getElementById('btnEndArrowhead').classList.add('open');
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.arrowhead-btn-wrapper')) {
+      closeAllArrowheadPopovers();
+    }
+  });
+
+  document.getElementById('toggleMoreStart')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const grid = document.getElementById('gridMoreStart');
+    const arrow = document.querySelector('#toggleMoreStart .more-arrow');
+    const isOpen = grid.style.display !== 'none';
+    grid.style.display = isOpen ? 'none' : 'grid';
+    if (arrow) arrow.textContent = isOpen ? '⌵' : '˄';
+  });
+
+  document.getElementById('toggleMoreEnd')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const grid = document.getElementById('gridMoreEnd');
+    const arrow = document.querySelector('#toggleMoreEnd .more-arrow');
+    const isOpen = grid.style.display !== 'none';
+    grid.style.display = isOpen ? 'none' : 'grid';
+    if (arrow) arrow.textContent = isOpen ? '⌵' : '˄';
+  });
+
+  document.getElementById('popoverStartArrowhead')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.arrowhead-opt-btn');
+    if (!btn) return;
+    const head = btn.dataset.head;
+    state.startArrowhead = head;
     for (const id of state.selectedIds) {
-      const el = state.elements.find((e) => e.id === id);
-      if (el && el.type === 'arrow') el.endArrowhead = state.endArrowhead;
+      const el = state.elements.find((item) => item.id === id);
+      if (el && el.type === 'arrow') el.startArrowhead = head;
     }
     saveHistory();
     renderAll();
-    updatePropertiesPanel();
+    closeAllArrowheadPopovers();
+  });
+
+  document.getElementById('popoverEndArrowhead')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.arrowhead-opt-btn');
+    if (!btn) return;
+    const head = btn.dataset.head;
+    state.endArrowhead = head;
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((item) => item.id === id);
+      if (el && el.type === 'arrow') el.endArrowhead = head;
+    }
+    saveHistory();
+    renderAll();
+    closeAllArrowheadPopovers();
   });
 
   // Edges (Sharp vs Round)

@@ -243,16 +243,120 @@
       <!-- 7. Arrowheads (for arrows) -->
       <div class="prop-group" id="groupArrowheads">
         <span class="prop-label">Arrowheads</span>
-        <div class="icon-button-group" id="arrowheadsGroup">
-          <button class="icon-btn" id="btnToggleStartHead" title="Toggle start arrowhead">
-            <span style="font-size: 13px; font-weight: bold;">✕—</span>
-          </button>
-          <button class="icon-btn active" id="btnToggleEndHead" title="Toggle end arrowhead">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="13 6 19 12 13 18"></polyline>
-            </svg>
-          </button>
+        <div class="arrowhead-picker-container" id="arrowheadsGroup">
+          <!-- Start Arrowhead -->
+          <div class="arrowhead-btn-wrapper">
+            <button class="arrowhead-trigger-btn" id="btnStartArrowhead" title="Start arrowhead">
+              <svg width="22" height="22" viewBox="0 0 24 24"><line x1="5" y1="8" x2="11" y2="16" stroke="currentColor" stroke-width="1.8"/><line x1="11" y1="8" x2="5" y2="16" stroke="currentColor" stroke-width="1.8"/><line x1="11" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+            </button>
+            <div class="arrowhead-popover" id="popoverStartArrowhead" style="display: none;">
+              <div class="arrowhead-quick-row">
+                <button class="arrowhead-opt-btn" data-head="none" title="None (q)">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><line x1="5" y1="8" x2="11" y2="16" stroke="currentColor" stroke-width="1.8"/><line x1="11" y1="8" x2="5" y2="16" stroke="currentColor" stroke-width="1.8"/><line x1="11" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                  <span class="arrowhead-key-badge">q</span>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="arrow" title="Arrow (w)">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><path d="M20 12H4M11 5L4 12l7 7" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>
+                  <span class="arrowhead-key-badge">w</span>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="triangle" title="Triangle (e)">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><polygon points="4,12 12,6 12,18" fill="currentColor"/><line x1="12" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                  <span class="arrowhead-key-badge">e</span>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="triangle_outline" title="Triangle Outline (r)">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><polygon points="4,12 12,6 12,18" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="12" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                  <span class="arrowhead-key-badge">r</span>
+                </button>
+              </div>
+              <div class="arrowhead-more-toggle" id="toggleMoreStart">
+                <span>More options</span>
+                <span class="more-arrow">⌵</span>
+              </div>
+              <div class="arrowhead-more-grid" id="gridMoreStart" style="display: none;">
+                <button class="arrowhead-opt-btn" data-head="circle" title="Dot / Circle">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4" fill="currentColor"/><line x1="12" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="circle_outline" title="Circle Outline">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="12" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="bar" title="Bar">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><line x1="5" y1="6" x2="5" y2="18" stroke="currentColor" stroke-width="2"/><line x1="5" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="diamond" title="Diamond">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><polygon points="3,12 8,7 13,12 8,17" fill="currentColor"/><line x1="13" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="diamond_outline" title="Diamond Outline">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><polygon points="3,12 8,7 13,12 8,17" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="13" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="crowfoot_many" title="Crowfoot Many">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 6L4 12l8 6" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="crowfoot_one" title="Cardinality One">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><line x1="5" y1="6" x2="5" y2="18" stroke="currentColor" stroke-width="1.8"/><line x1="9" y1="6" x2="9" y2="18" stroke="currentColor" stroke-width="1.8"/><line x1="5" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="crowfoot_one_or_many" title="Cardinality One or Many">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><path d="M11 6L4 12l7 6" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/><line x1="15" y1="6" x2="15" y2="18" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- End Arrowhead -->
+          <div class="arrowhead-btn-wrapper">
+            <button class="arrowhead-trigger-btn" id="btnEndArrowhead" title="End arrowhead">
+              <svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 12h16M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>
+            </button>
+            <div class="arrowhead-popover popover-right" id="popoverEndArrowhead" style="display: none;">
+              <div class="arrowhead-quick-row">
+                <button class="arrowhead-opt-btn" data-head="none" title="None (q)">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><line x1="3" y1="12" x2="13" y2="12" stroke="currentColor" stroke-width="1.8"/><line x1="13" y1="8" x2="19" y2="16" stroke="currentColor" stroke-width="1.8"/><line x1="19" y1="8" x2="13" y2="16" stroke="currentColor" stroke-width="1.8"/></svg>
+                  <span class="arrowhead-key-badge">q</span>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="arrow" title="Arrow (w)">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 12h16M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>
+                  <span class="arrowhead-key-badge">w</span>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="triangle" title="Triangle (e)">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><polygon points="20,12 12,6 12,18" fill="currentColor"/><line x1="4" y1="12" x2="12" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                  <span class="arrowhead-key-badge">e</span>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="triangle_outline" title="Triangle Outline (r)">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><polygon points="20,12 12,6 12,18" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="4" y1="12" x2="12" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                  <span class="arrowhead-key-badge">r</span>
+                </button>
+              </div>
+              <div class="arrowhead-more-toggle" id="toggleMoreEnd">
+                <span>More options</span>
+                <span class="more-arrow">⌵</span>
+              </div>
+              <div class="arrowhead-more-grid" id="gridMoreEnd" style="display: none;">
+                <button class="arrowhead-opt-btn" data-head="circle" title="Dot / Circle">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="16" cy="12" r="4" fill="currentColor"/><line x1="4" y1="12" x2="12" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="circle_outline" title="Circle Outline">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="16" cy="12" r="4" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="4" y1="12" x2="12" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="bar" title="Bar">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><line x1="19" y1="6" x2="19" y2="18" stroke="currentColor" stroke-width="2"/><line x1="4" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="diamond" title="Diamond">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><polygon points="21,12 16,7 11,12 16,17" fill="currentColor"/><line x1="4" y1="12" x2="11" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="diamond_outline" title="Diamond Outline">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><polygon points="21,12 16,7 11,12 16,17" fill="#ffffff" stroke="currentColor" stroke-width="1.8"/><line x1="4" y1="12" x2="11" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="crowfoot_many" title="Crowfoot Many">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 6l8 6-8 6" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="crowfoot_one" title="Cardinality One">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><line x1="15" y1="6" x2="15" y2="18" stroke="currentColor" stroke-width="1.8"/><line x1="19" y1="6" x2="19" y2="18" stroke="currentColor" stroke-width="1.8"/><line x1="4" y1="12" x2="15" y2="12" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+                <button class="arrowhead-opt-btn" data-head="crowfoot_one_or_many" title="Cardinality One or Many">
+                  <svg width="22" height="22" viewBox="0 0 24 24"><path d="M13 6l7 6-7 6" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.8"/><line x1="9" y1="6" x2="9" y2="18" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
