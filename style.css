@@ -381,7 +381,7 @@ canvas {
   background: transparent;
   border: none;
   outline: none;
-  padding: 2px 4px;
+  padding: 0;
   margin: 0;
   font-family: 'Excalifont', cursive, sans-serif;
   color: #1e1e1e;
@@ -389,7 +389,7 @@ canvas {
   overflow: hidden;
   white-space: pre;
   z-index: 100;
-  line-height: 1.35;
+  line-height: 1.25;
   box-shadow: none;
-  box-sizing: border-box;
+  box-sizing: content-box;
 }

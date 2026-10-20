@@ -545,15 +545,21 @@
     if (!el.text) return;
     if (state.editingText && state.editingText.element?.id === el.id) return;
     ctx.save();
-    ctx.font = `${el.fontSize || 18}px 'Excalifont', cursive, sans-serif`;
+    const fontSize = el.fontSize || 20;
+    ctx.font = `${fontSize}px 'Excalifont', cursive, sans-serif`;
     ctx.fillStyle = el.strokeColor || '#1e1e1e';
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'alphabetic';
 
     const lines = el.text.split('\n');
-    const lineHeight = (el.fontSize || 18) * 1.35;
+    const lineHeight = fontSize * 1.25;
+    // Excalidraw font metrics: unitsPerEm = 1000, ascender = 886, descender = -374
+    const fontSizeEm = fontSize / 1000;
+    const lineGap = (lineHeight - fontSizeEm * 886 - fontSizeEm * 374) / 2;
+    const verticalOffset = fontSizeEm * 886 + lineGap;
+
     lines.forEach((line, i) => {
-      ctx.fillText(line, el.x, el.y + i * lineHeight);
+      ctx.fillText(line, el.x, el.y + i * lineHeight + verticalOffset);
     });
     ctx.restore();
   }
@@ -685,7 +691,8 @@
     const minY = Math.min(el.y, el.y + el.height);
     const w = Math.abs(el.width);
     const h = Math.abs(el.height);
-    return { x: minX - 4, y: minY - 4, width: w + 8, height: h + 8 };
+    const pad = 4 / state.zoom;
+    return { x: minX - pad, y: minY - pad, width: w + pad * 2, height: h + pad * 2 };
   }
 
   function getHandleCoordinates(b) {
@@ -743,7 +750,9 @@
       return;
     }
 
-    interactiveCanvas.setPointerCapture(e.pointerId);
+    try {
+      interactiveCanvas.setPointerCapture(e.pointerId);
+    } catch (_) {}
     const scenePt = screenToScene(e.clientX, e.clientY);
     state.dragStart = { x: scenePt.x, y: scenePt.y };
     state.lastPointerScreen = { x: e.clientX, y: e.clientY };
@@ -1084,11 +1093,11 @@
         type: 'text',
         x: sceneX,
         y: sceneY,
-        width: 100,
-        height: 30,
+        width: 0,
+        height: 0,
         text: val,
         strokeColor: state.strokeColor,
-        fontSize: 18,
+        fontSize: 20,
         roughness: 0,
         seed: generateSeed(),
       };
@@ -1109,7 +1118,8 @@
   function updateTextElementSize(el) {
     if (!el || !el.text) return;
     staticCtx.save();
-    staticCtx.font = `${el.fontSize || 18}px 'Excalifont', cursive, sans-serif`;
+    const fontSize = el.fontSize || 20;
+    staticCtx.font = `${fontSize}px 'Excalifont', cursive, sans-serif`;
     const lines = el.text.split('\n');
     let maxW = 0;
     for (const line of lines) {
@@ -1117,9 +1127,9 @@
       if (m.width > maxW) maxW = m.width;
     }
     staticCtx.restore();
-    const lineHeight = (el.fontSize || 18) * 1.35;
-    el.width = Math.max(maxW + 16, 40);
-    el.height = Math.max(lines.length * lineHeight, 28);
+    const lineHeight = fontSize * 1.25;
+    el.width = Math.ceil(maxW);
+    el.height = Math.ceil(lines.length * lineHeight);
   }
 
   function openTextEditorForContainer(containerEl) {
@@ -1140,9 +1150,9 @@
     const screenCenter = sceneToScreen(cx, cy);
     const screenW = containerEl.width * state.zoom;
     const fontSize = (containerEl.fontSize || 16) * state.zoom;
-    const lineHeight = fontSize * 1.35;
+    const lineHeight = fontSize * 1.25;
     const lines = (containerEl.text || 'A').split('\n');
-    const estimatedH = Math.max(lines.length * lineHeight + 14, 38);
+    const estimatedH = Math.max(lines.length * lineHeight, 28);
     const editorW = Math.max(screenW - 20, 120);
 
     textEditor.style.display = 'block';
@@ -1152,6 +1162,7 @@
     textEditor.style.height = estimatedH + 'px';
     textEditor.style.textAlign = 'center';
     textEditor.style.fontSize = fontSize + 'px';
+    textEditor.style.lineHeight = '1.25';
     textEditor.style.color = containerEl.strokeColor || '#1e1e1e';
     textEditor.value = containerEl.text || '';
     textEditor.scrollTop = 0;
@@ -1183,19 +1194,20 @@
     };
 
     const screenPos = sceneToScreen(x, y);
-    const fontSize = (existingEl?.fontSize || 18) * state.zoom;
-    const lineHeight = fontSize * 1.35;
+    const fontSize = (existingEl?.fontSize || 20) * state.zoom;
+    const lineHeight = fontSize * 1.25;
     const lines = (existingEl?.text || 'A').split('\n');
-    const height = Math.max(lines.length * lineHeight + 14, 38);
-    const width = existingEl ? Math.max(existingEl.width * state.zoom + 24, 160) : 240;
+    const height = Math.max(lines.length * lineHeight, 25);
+    const width = existingEl ? Math.max(existingEl.width * state.zoom + 20, 120) : 200;
 
     textEditor.style.display = 'block';
     textEditor.style.left = screenPos.x + 'px';
-    textEditor.style.top = screenPos.y - 2 + 'px';
+    textEditor.style.top = screenPos.y + 'px';
     textEditor.style.width = width + 'px';
     textEditor.style.height = height + 'px';
     textEditor.style.textAlign = 'left';
     textEditor.style.fontSize = fontSize + 'px';
+    textEditor.style.lineHeight = '1.25';
     textEditor.style.color = existingEl ? (existingEl.strokeColor || state.strokeColor) : state.strokeColor;
     textEditor.value = existingEl ? existingEl.text : '';
     textEditor.scrollTop = 0;
@@ -1227,14 +1239,14 @@
       const cy = containerEl.y + containerEl.height / 2;
       const screenCenter = sceneToScreen(containerEl.x + containerEl.width / 2, cy);
       textEditor.style.height = 'auto';
-      const newH = Math.max(textEditor.scrollHeight + 10, 38);
+      const newH = Math.max(textEditor.scrollHeight, 28);
       textEditor.style.height = newH + 'px';
       textEditor.style.top = screenCenter.y - newH / 2 + 'px';
     } else {
       textEditor.style.width = 'auto';
-      textEditor.style.width = Math.max(textEditor.scrollWidth + 24, 160) + 'px';
+      textEditor.style.width = Math.max(textEditor.scrollWidth + 20, 120) + 'px';
       textEditor.style.height = 'auto';
-      textEditor.style.height = Math.max(textEditor.scrollHeight + 10, 38) + 'px';
+      textEditor.style.height = Math.max(textEditor.scrollHeight, 25) + 'px';
     }
     textEditor.scrollTop = 0;
   });
@@ -1850,6 +1862,8 @@
     for (const el of state.elements) {
       if (el.type === 'arrow') {
         updateArrowPoints(el);
+      } else if (el.type === 'text') {
+        updateTextElementSize(el);
       }
     }
 
@@ -1863,6 +1877,17 @@
 
   // Load the initial demo so the user immediately sees the diagram from the screenshot!
   loadDemoSecurityDiagram();
+
+  if (document.fonts) {
+    document.fonts.ready.then(() => {
+      for (const el of state.elements) {
+        if (el.type === 'text') {
+          updateTextElementSize(el);
+        }
+      }
+      renderAll();
+    });
+  }
 
   window.drawo = { state, renderAll, screenToScene, sceneToScreen };
   window.__miniExcalidraw = window.drawo;
