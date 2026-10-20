@@ -41,8 +41,15 @@
     // Styling defaults
     strokeColor: '#1e1e1e',
     backgroundColor: 'transparent',
+    stickyBgColor: '#fff3bf',
     strokeWidth: 2,
+    strokeStyle: 'solid', // 'solid' | 'dashed' | 'dotted'
     roughness: 1,
+    arrowType: 'straight', // 'straight' | 'curved' | 'elbow'
+    startArrowhead: 'none', // 'none' | 'arrow'
+    endArrowhead: 'arrow', // 'none' | 'arrow'
+    roundness: 'round', // 'sharp' | 'round'
+    opacity: 100, // 0 - 100
 
     // Active text editing session
     editingText: null, // { element, container, sceneX, sceneY }
@@ -432,6 +439,7 @@
   function renderAll() {
     renderStatic();
     renderInteractive();
+    updatePropertiesPanel();
   }
 
   /**
@@ -452,17 +460,40 @@
     }
   }
 
+  function getRoundedRectPath(x, y, w, h, r = 10) {
+    r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+    return `M ${x + r} ${y} ` +
+           `L ${x + w - r} ${y} ` +
+           `A ${r} ${r} 0 0 1 ${x + w} ${y + r} ` +
+           `L ${x + w} ${y + h - r} ` +
+           `A ${r} ${r} 0 0 1 ${x + w - r} ${y + h} ` +
+           `L ${x + r} ${y + h} ` +
+           `A ${r} ${r} 0 0 1 ${x} ${y + h - r} ` +
+           `L ${x} ${y + r} ` +
+           `A ${r} ${r} 0 0 1 ${x + r} ${y} Z`;
+  }
+
   /**
    * Draws a single element with hand-drawn aesthetic
    */
   function drawElement(ctx, rc, el) {
+    ctx.save();
+    if (el.opacity !== undefined && el.opacity !== null) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, el.opacity / 100));
+    }
+
+    let strokeLineDash = [];
+    if (el.strokeStyle === 'dashed') strokeLineDash = [8, 8];
+    else if (el.strokeStyle === 'dotted') strokeLineDash = [2, 6];
+
     const roughOpts = {
       seed: el.seed,
-      stroke: el.strokeColor,
-      strokeWidth: el.strokeWidth,
-      roughness: el.roughness,
-      fill: el.backgroundColor !== 'transparent' ? el.backgroundColor : undefined,
-      fillStyle: el.backgroundColor !== 'transparent' ? 'solid' : undefined,
+      stroke: el.strokeColor || '#1e1e1e',
+      strokeWidth: el.strokeWidth || 2,
+      roughness: el.roughness ?? 1,
+      strokeLineDash,
+      fill: el.backgroundColor !== 'transparent' && el.backgroundColor ? el.backgroundColor : undefined,
+      fillStyle: el.backgroundColor !== 'transparent' && el.backgroundColor ? 'solid' : undefined,
     };
 
     if (el.type === 'rectangle') {
@@ -470,7 +501,28 @@
       const minY = Math.min(el.y, el.y + el.height);
       const w = Math.abs(el.width);
       const h = Math.abs(el.height);
-      rc.rectangle(minX, minY, w, h, roughOpts);
+      if (el.roundness === 'round') {
+        rc.path(getRoundedRectPath(minX, minY, w, h, 10), roughOpts);
+      } else {
+        rc.rectangle(minX, minY, w, h, roughOpts);
+      }
+      drawContainerText(ctx, el);
+    } else if (el.type === 'stickynote') {
+      const minX = Math.min(el.x, el.x + el.width);
+      const minY = Math.min(el.y, el.y + el.height);
+      const w = Math.abs(el.width);
+      const h = Math.abs(el.height);
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 4;
+      if (el.roundness === 'round') {
+        rc.path(getRoundedRectPath(minX, minY, w, h, 8), roughOpts);
+      } else {
+        rc.rectangle(minX, minY, w, h, roughOpts);
+      }
+      ctx.restore();
       drawContainerText(ctx, el);
     } else if (el.type === 'diamond') {
       const cx = el.x + el.width / 2;
@@ -499,21 +551,64 @@
     } else if (el.type === 'arrow') {
       const p1 = [el.x + el.points[0][0], el.y + el.points[0][1]];
       const p2 = [el.x + el.points[1][0], el.y + el.points[1][1]];
-      // Draw main stem
-      rc.line(p1[0], p1[1], p2[0], p2[1], roughOpts);
+      const arrowType = el.arrowType || 'straight';
 
-      // Draw hand-drawn arrow heads
-      const angle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
-      const leftX = p2[0] - ARROW_HEAD_LENGTH * Math.cos(angle - ARROW_HEAD_ANGLE);
-      const leftY = p2[1] - ARROW_HEAD_LENGTH * Math.sin(angle - ARROW_HEAD_ANGLE);
-      const rightX = p2[0] - ARROW_HEAD_LENGTH * Math.cos(angle + ARROW_HEAD_ANGLE);
-      const rightY = p2[1] - ARROW_HEAD_LENGTH * Math.sin(angle + ARROW_HEAD_ANGLE);
+      let endAngle = 0;
+      let startAngle = 0;
 
-      rc.line(p2[0], p2[1], leftX, leftY, roughOpts);
-      rc.line(p2[0], p2[1], rightX, rightY, roughOpts);
+      if (arrowType === 'curved') {
+        const mx = (p1[0] + p2[0]) / 2;
+        const my = (p1[1] + p2[1]) / 2;
+        const dx = p2[0] - p1[0];
+        const dy = p2[1] - p1[1];
+        const dist = Math.hypot(dx, dy) || 1;
+        const curveOffset = Math.min(dist * 0.22, 45);
+        const nx = -dy / dist;
+        const ny = dx / dist;
+        const cx = mx + nx * curveOffset;
+        const cy = my + ny * curveOffset;
+
+        rc.curve([p1, [cx, cy], p2], roughOpts);
+        endAngle = Math.atan2(p2[1] - cy, p2[0] - cx);
+        startAngle = Math.atan2(p1[1] - cy, p1[0] - cx);
+      } else if (arrowType === 'elbow') {
+        const midX = (p1[0] + p2[0]) / 2;
+        const c1 = [midX, p1[1]];
+        const c2 = [midX, p2[1]];
+        rc.linearPath([p1, c1, c2, p2], roughOpts);
+        endAngle = Math.atan2(p2[1] - c2[1], p2[0] - c2[0]);
+        startAngle = Math.atan2(p1[1] - c1[1], p1[0] - c1[0]);
+      } else {
+        // straight
+        rc.line(p1[0], p1[1], p2[0], p2[1], roughOpts);
+        endAngle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+        startAngle = Math.atan2(p1[1] - p2[1], p1[0] - p2[0]);
+      }
+
+      // Draw end arrowhead
+      if (el.endArrowhead !== 'none') {
+        const leftX = p2[0] - ARROW_HEAD_LENGTH * Math.cos(endAngle - ARROW_HEAD_ANGLE);
+        const leftY = p2[1] - ARROW_HEAD_LENGTH * Math.sin(endAngle - ARROW_HEAD_ANGLE);
+        const rightX = p2[0] - ARROW_HEAD_LENGTH * Math.cos(endAngle + ARROW_HEAD_ANGLE);
+        const rightY = p2[1] - ARROW_HEAD_LENGTH * Math.sin(endAngle + ARROW_HEAD_ANGLE);
+        rc.line(p2[0], p2[1], leftX, leftY, roughOpts);
+        rc.line(p2[0], p2[1], rightX, rightY, roughOpts);
+      }
+
+      // Draw start arrowhead if enabled
+      if (el.startArrowhead === 'arrow') {
+        const leftX = p1[0] - ARROW_HEAD_LENGTH * Math.cos(startAngle - ARROW_HEAD_ANGLE);
+        const leftY = p1[1] - ARROW_HEAD_LENGTH * Math.sin(startAngle - ARROW_HEAD_ANGLE);
+        const rightX = p1[0] - ARROW_HEAD_LENGTH * Math.cos(startAngle + ARROW_HEAD_ANGLE);
+        const rightY = p1[1] - ARROW_HEAD_LENGTH * Math.sin(startAngle + ARROW_HEAD_ANGLE);
+        rc.line(p1[0], p1[1], leftX, leftY, roughOpts);
+        rc.line(p1[0], p1[1], rightX, rightY, roughOpts);
+      }
     } else if (el.type === 'text') {
       drawTextElement(ctx, el);
     }
+
+    ctx.restore();
   }
 
   /**
@@ -681,10 +776,26 @@
     if (el.type === 'arrow' || el.type === 'line') {
       const p1 = { x: el.x + el.points[0][0], y: el.y + el.points[0][1] };
       const p2 = { x: el.x + el.points[1][0], y: el.y + el.points[1][1] };
-      const minX = Math.min(p1.x, p2.x);
-      const minY = Math.min(p1.y, p2.y);
-      const maxX = Math.max(p1.x, p2.x);
-      const maxY = Math.max(p1.y, p2.y);
+      let minX = Math.min(p1.x, p2.x);
+      let minY = Math.min(p1.y, p2.y);
+      let maxX = Math.max(p1.x, p2.x);
+      let maxY = Math.max(p1.y, p2.y);
+
+      if (el.type === 'arrow' && el.arrowType === 'curved') {
+        const mx = (p1.x + p2.x) / 2;
+        const my = (p1.y + p2.y) / 2;
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const curveOffset = Math.min(dist * 0.22, 45);
+        const cx = mx + (-dy / dist) * curveOffset;
+        const cy = my + (dx / dist) * curveOffset;
+        minX = Math.min(minX, cx);
+        minY = Math.min(minY, cy);
+        maxX = Math.max(maxX, cx);
+        maxY = Math.max(maxY, cy);
+      }
+
       return { x: minX - 6, y: minY - 6, width: maxX - minX + 12, height: maxY - minY + 12 };
     }
     const minX = Math.min(el.x, el.x + el.width);
@@ -707,7 +818,7 @@
   // --- Hit Testing ---
 
   function hitTestElement(el, pt) {
-    if (el.type === 'rectangle' || el.type === 'diamond' || el.type === 'ellipse' || el.type === 'text') {
+    if (el.type === 'rectangle' || el.type === 'stickynote' || el.type === 'diamond' || el.type === 'ellipse' || el.type === 'text') {
       const minX = Math.min(el.x, el.x + el.width);
       const maxX = Math.max(el.x, el.x + el.width);
       const minY = Math.min(el.y, el.y + el.height);
@@ -806,27 +917,34 @@
       return;
     }
 
-    // Tool: Shapes & Arrows (Drawing mode)
+    // Tool: Shapes, Sticky Notes & Arrows (Drawing mode)
     if (state.activeTool !== 'selection') {
       state.dragMode = 'draw';
+      const isSticky = state.activeTool === 'stickynote';
       const newEl = {
         id: generateId(),
         type: state.activeTool,
         x: scenePt.x,
         y: scenePt.y,
-        width: 1,
-        height: 1,
+        width: isSticky ? 180 : 1,
+        height: isSticky ? 180 : 1,
         strokeColor: state.strokeColor,
-        backgroundColor: state.backgroundColor,
+        backgroundColor: isSticky ? (state.stickyBgColor || '#fff3bf') : state.backgroundColor,
         strokeWidth: state.strokeWidth,
+        strokeStyle: state.strokeStyle,
         roughness: state.roughness,
+        roundness: state.roundness,
+        opacity: state.opacity,
+        arrowType: state.arrowType,
+        startArrowhead: state.startArrowhead,
+        endArrowhead: state.endArrowhead,
         seed: generateSeed(),
         points: [[0, 0], [1, 1]],
         startBinding: null,
         endBinding: null,
         boundElements: [],
         text: '',
-        fontSize: 16,
+        fontSize: isSticky ? 18 : 16,
       };
 
       // Check if arrow starts bound to an existing shape
@@ -838,7 +956,6 @@
             fixedPoint: target.fixedPoint,
             gap: BASE_BINDING_GAP,
           };
-          // Track on target element
           if (!target.element.boundElements) target.element.boundElements = [];
           target.element.boundElements.push({ id: newEl.id, type: 'arrow' });
         }
@@ -858,11 +975,13 @@
       }
       state.dragMode = 'move';
       renderAll();
+      updatePropertiesPanel();
     } else {
       if (!e.shiftKey) state.selectedIds.clear();
       state.dragMode = 'boxSelect';
       state.boxSelectBounds = { x: scenePt.x, y: scenePt.y, w: 0, h: 0 };
       renderAll();
+      updatePropertiesPanel();
     }
   });
 
@@ -1025,6 +1144,27 @@
         updateArrowPoints(el);
       }
 
+      if (el.type === 'stickynote') {
+        if (Math.abs(el.width) < 20 || Math.abs(el.height) < 20) {
+          el.width = 180;
+          el.height = 180;
+        }
+        state.elements.push(el);
+        saveHistory();
+        state.currentElement = null;
+        state.bindingCandidate = null;
+        state.dragMode = null;
+        state.boxSelectBounds = null;
+        if (!state.isLocked) {
+          setTool('selection');
+          state.selectedIds.clear();
+          state.selectedIds.add(el.id);
+        }
+        renderAll();
+        openTextEditorForContainer(el);
+        return;
+      }
+
       // Commit element if non-zero size
       const isTiny = (el.type === 'arrow' || el.type === 'line')
         ? distance(0, 0, el.points[1][0], el.points[1][1]) < 5
@@ -1047,6 +1187,7 @@
     state.dragMode = null;
     state.boxSelectBounds = null;
     renderAll();
+    updatePropertiesPanel();
   });
 
   // --- Double-click to Edit Text or Create Container Text ---
@@ -1055,7 +1196,7 @@
     const hitEl = hitTestTopElement(scenePt);
 
     if (hitEl) {
-      if (hitEl.type === 'rectangle' || hitEl.type === 'diamond' || hitEl.type === 'ellipse') {
+      if (hitEl.type === 'rectangle' || hitEl.type === 'diamond' || hitEl.type === 'ellipse' || hitEl.type === 'stickynote') {
         openTextEditorForContainer(hitEl);
       } else if (hitEl.type === 'text') {
         openTextEditor(hitEl.x, hitEl.y, hitEl);
@@ -1310,23 +1451,46 @@
       interactiveCanvas.style.cursor = 'grab';
     }
 
+    // Cycle arrow type if pressing 'a' while arrow tool is already active
+    if (e.key === 'a' || e.key === 'A') {
+      if (state.activeTool === 'arrow') {
+        const types = ['straight', 'curved', 'elbow'];
+        const nextIdx = (types.indexOf(state.arrowType) + 1) % types.length;
+        state.arrowType = types[nextIdx];
+        for (const id of state.selectedIds) {
+          const el = state.elements.find(el => el.id === id);
+          if (el && el.type === 'arrow') el.arrowType = state.arrowType;
+        }
+        renderAll();
+        updatePropertiesPanel();
+      } else {
+        setTool('arrow');
+      }
+      return;
+    }
+
+    if (e.key === 'n' || e.key === 'N') setTool('stickynote');
     if (e.key === 'v' || e.key === 'V' || e.key === '1') setTool('selection');
     if (e.key === 'h' || e.key === 'H') setTool('hand');
     if (e.key === 'r' || e.key === 'R' || e.key === '2') setTool('rectangle');
     if (e.key === 'd' || e.key === 'D' || e.key === '3') setTool('diamond');
     if (e.key === 'o' || e.key === 'O' || e.key === '4') setTool('ellipse');
-    if (e.key === 'a' || e.key === 'A' || e.key === '5') setTool('arrow');
     if (e.key === 'l' || e.key === 'L' || e.key === '6') setTool('line');
     if (e.key === 't' || e.key === 'T' || e.key === '8') setTool('text');
     if (e.key === 'e' || e.key === 'E' || e.key === '0') setTool('eraser');
 
+    // Duplicate (Cmd + D / Ctrl + D)
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
+      e.preventDefault();
+      document.getElementById('btnDuplicate').click();
+      return;
+    }
+
     // Delete selected elements
     if (e.key === 'Backspace' || e.key === 'Delete') {
       if (state.selectedIds.size > 0) {
-        state.elements = state.elements.filter((el) => !state.selectedIds.has(el.id));
-        state.selectedIds.clear();
-        saveHistory();
-        renderAll();
+        document.getElementById('btnDelete').click();
+        return;
       }
     }
 
@@ -1348,7 +1512,7 @@
     }
   });
 
-  // --- Toolbar & UI Binding ---
+  // --- Toolbar & Dynamic Properties Panel ---
 
   function setTool(toolName) {
     state.activeTool = toolName;
@@ -1356,6 +1520,131 @@
       btn.classList.toggle('active', btn.dataset.tool === toolName);
     });
     interactiveCanvas.style.cursor = toolName === 'hand' ? 'grab' : (toolName === 'selection' ? 'default' : 'crosshair');
+    updatePropertiesPanel();
+    updateBottomHint();
+  }
+
+  function updateBottomHint() {
+    const hintEl = document.querySelector('.bottom-hint');
+    if (!hintEl) return;
+    const tool = state.activeTool;
+    if (tool === 'arrow') {
+      hintEl.innerHTML = 'Click to start multiple points, drag for single line. Press <kbd>A</kbd> again to change arrow type.';
+    } else if (tool === 'stickynote') {
+      hintEl.innerHTML = 'Click to place a note, or drag to size it';
+    } else if (tool === 'text') {
+      hintEl.innerHTML = 'Text tool (<kbd>T</kbd>): click anywhere to write • Click outside to finish • Hold <kbd>Space</kbd> to pan';
+    } else if (tool === 'selection') {
+      hintEl.innerHTML = 'Selection tool (<kbd>V</kbd>): click to select • Drag to box-select • Double-click shape to add text';
+    } else if (tool === 'hand') {
+      hintEl.innerHTML = 'Hand tool (<kbd>H</kbd>): drag canvas to pan • Mouse wheel to zoom';
+    } else if (tool === 'eraser') {
+      hintEl.innerHTML = 'Eraser tool (<kbd>E</kbd>): click or drag over elements to erase';
+    } else {
+      hintEl.innerHTML = 'Click & drag to draw shape • Hold <kbd>Shift</kbd> for 1:1 ratio • Hold <kbd>Space</kbd> to pan';
+    }
+  }
+
+  function updatePropertiesPanel() {
+    const selectedElements = state.elements.filter((e) => state.selectedIds.has(e.id));
+    const target = selectedElements[0] || null;
+    const tool = state.activeTool;
+
+    const groupStroke = document.getElementById('groupStroke');
+    const groupBackground = document.getElementById('groupBackground');
+    const groupStrokeWidth = document.getElementById('groupStrokeWidth');
+    const groupStrokeStyle = document.getElementById('groupStrokeStyle');
+    const groupRoughness = document.getElementById('groupRoughness');
+    const groupArrowType = document.getElementById('groupArrowType');
+    const groupArrowheads = document.getElementById('groupArrowheads');
+    const groupEdges = document.getElementById('groupEdges');
+    const groupOpacity = document.getElementById('groupOpacity');
+    const groupLayers = document.getElementById('groupLayers');
+    const groupActions = document.getElementById('groupActions');
+
+    const labelStroke = document.getElementById('labelStroke');
+    const labelBackground = document.getElementById('labelBackground');
+    const bgColorPalette = document.getElementById('bgColorPalette');
+    const stickyColorPalette = document.getElementById('stickyColorPalette');
+
+    const isSticky = target ? target.type === 'stickynote' : tool === 'stickynote';
+    const isArrow = target ? target.type === 'arrow' : tool === 'arrow';
+    const isLine = target ? target.type === 'line' : tool === 'line';
+    const isRect = target ? target.type === 'rectangle' : tool === 'rectangle';
+    const isText = target ? target.type === 'text' : tool === 'text';
+
+    // Label: Text color vs Stroke
+    labelStroke.textContent = (isSticky || isText) ? 'Text color' : 'Stroke';
+
+    // Palette: Show Pastel Palette for sticky notes, standard palette for shapes
+    if (isSticky) {
+      bgColorPalette.style.display = 'none';
+      stickyColorPalette.style.display = 'flex';
+      labelBackground.textContent = 'Background';
+    } else {
+      bgColorPalette.style.display = 'flex';
+      stickyColorPalette.style.display = 'none';
+      labelBackground.textContent = 'Background';
+    }
+
+    // Dynamic visibility matching Excalidraw
+    groupStroke.style.display = 'flex';
+    groupBackground.style.display = (isArrow || isLine || isText) ? 'none' : 'flex';
+    groupStrokeWidth.style.display = (isSticky || isText) ? 'none' : 'flex';
+    groupStrokeStyle.style.display = (isSticky || isText) ? 'none' : 'flex';
+    groupRoughness.style.display = isText ? 'none' : 'flex';
+    groupArrowType.style.display = isArrow ? 'flex' : 'none';
+    groupArrowheads.style.display = isArrow ? 'flex' : 'none';
+    groupEdges.style.display = (isRect || isSticky) ? 'flex' : 'none';
+    groupOpacity.style.display = 'flex';
+    groupLayers.style.display = selectedElements.length > 0 ? 'flex' : 'none';
+    groupActions.style.display = selectedElements.length > 0 ? 'flex' : 'none';
+
+    // Sync button active states
+    const curStroke = target ? target.strokeColor : state.strokeColor;
+    document.querySelectorAll('#strokeColorPalette .color-swatch:not(.color-custom-btn)').forEach((s) => {
+      s.classList.toggle('active', s.dataset.color === curStroke);
+    });
+
+    const curBg = target ? target.backgroundColor : (isSticky ? state.stickyBgColor : state.backgroundColor);
+    document.querySelectorAll('#bgColorPalette .color-swatch, #stickyColorPalette .color-swatch').forEach((s) => {
+      s.classList.toggle('active', s.dataset.color === curBg);
+    });
+
+    const curWidth = target ? target.strokeWidth : state.strokeWidth;
+    document.querySelectorAll('#strokeWidthGroup .icon-btn').forEach((b) => {
+      b.classList.toggle('active', parseInt(b.dataset.val, 10) === curWidth);
+    });
+
+    const curStyle = target ? target.strokeStyle : state.strokeStyle;
+    document.querySelectorAll('#strokeStyleGroup .icon-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.val === curStyle);
+    });
+
+    const curRough = target ? target.roughness : state.roughness;
+    document.querySelectorAll('#roughnessGroup .icon-btn').forEach((b) => {
+      b.classList.toggle('active', parseFloat(b.dataset.val) === curRough);
+    });
+
+    const curArrowType = target ? target.arrowType : state.arrowType;
+    document.querySelectorAll('#arrowTypeGroup .icon-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.val === curArrowType);
+    });
+
+    const curStartHead = target ? target.startArrowhead : state.startArrowhead;
+    document.getElementById('btnToggleStartHead').classList.toggle('active', curStartHead === 'arrow');
+
+    const curEndHead = target ? target.endArrowhead : state.endArrowhead;
+    document.getElementById('btnToggleEndHead').classList.toggle('active', curEndHead !== 'none');
+
+    const curRound = target ? target.roundness : state.roundness;
+    document.querySelectorAll('#edgesGroup .icon-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.val === curRound);
+    });
+
+    const curOpacity = target ? (target.opacity ?? 100) : state.opacity;
+    document.getElementById('opacitySlider').value = curOpacity;
+    document.getElementById('opacityLabel').textContent = curOpacity;
   }
 
   document.getElementById('toolbar').addEventListener('click', (e) => {
@@ -1365,64 +1654,257 @@
     }
   });
 
-  // Color Swatches
+  // Stroke Color Swatches
   document.getElementById('strokeColorPalette').addEventListener('click', (e) => {
-    const swatch = e.target.closest('.color-swatch');
+    const swatch = e.target.closest('.color-swatch:not(.color-custom-btn)');
     if (!swatch) return;
-    document.querySelectorAll('#strokeColorPalette .color-swatch').forEach((s) => s.classList.remove('active'));
-    swatch.classList.add('active');
     state.strokeColor = swatch.dataset.color;
-
-    // Apply to selected elements
     for (const id of state.selectedIds) {
       const el = state.elements.find((e) => e.id === id);
       if (el) el.strokeColor = state.strokeColor;
     }
+    saveHistory();
     renderAll();
+    updatePropertiesPanel();
   });
 
+  // Custom Color Picker
+  const customColorPicker = document.getElementById('customColorPicker');
+  customColorPicker.addEventListener('input', (e) => {
+    state.strokeColor = e.target.value;
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((el) => el.id === id);
+      if (el) el.strokeColor = state.strokeColor;
+    }
+    renderAll();
+    updatePropertiesPanel();
+  });
+  customColorPicker.addEventListener('change', () => {
+    saveHistory();
+  });
+
+  // Background Color Swatches (Standard)
   document.getElementById('bgColorPalette').addEventListener('click', (e) => {
     const swatch = e.target.closest('.color-swatch');
     if (!swatch) return;
-    document.querySelectorAll('#bgColorPalette .color-swatch').forEach((s) => s.classList.remove('active'));
-    swatch.classList.add('active');
     state.backgroundColor = swatch.dataset.color;
-
     for (const id of state.selectedIds) {
       const el = state.elements.find((e) => e.id === id);
       if (el) el.backgroundColor = state.backgroundColor;
     }
+    saveHistory();
     renderAll();
+    updatePropertiesPanel();
+  });
+
+  // Background Color Swatches (Pastel Sticky Note)
+  document.getElementById('stickyColorPalette').addEventListener('click', (e) => {
+    const swatch = e.target.closest('.color-swatch');
+    if (!swatch) return;
+    state.stickyBgColor = swatch.dataset.color;
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((e) => e.id === id);
+      if (el && el.type === 'stickynote') el.backgroundColor = state.stickyBgColor;
+    }
+    saveHistory();
+    renderAll();
+    updatePropertiesPanel();
   });
 
   // Stroke Width
   document.getElementById('strokeWidthGroup').addEventListener('click', (e) => {
-    const btn = e.target.closest('.group-btn');
+    const btn = e.target.closest('.icon-btn');
     if (!btn) return;
-    document.querySelectorAll('#strokeWidthGroup .group-btn').forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
     state.strokeWidth = parseInt(btn.dataset.val, 10);
-
     for (const id of state.selectedIds) {
       const el = state.elements.find((e) => e.id === id);
       if (el) el.strokeWidth = state.strokeWidth;
     }
+    saveHistory();
     renderAll();
+    updatePropertiesPanel();
   });
 
-  // Roughness
-  document.getElementById('roughnessGroup').addEventListener('click', (e) => {
-    const btn = e.target.closest('.group-btn');
+  // Stroke Style (Solid, Dashed, Dotted)
+  document.getElementById('strokeStyleGroup').addEventListener('click', (e) => {
+    const btn = e.target.closest('.icon-btn');
     if (!btn) return;
-    document.querySelectorAll('#roughnessGroup .group-btn').forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.roughness = parseFloat(btn.dataset.val);
+    state.strokeStyle = btn.dataset.val;
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((e) => e.id === id);
+      if (el) el.strokeStyle = state.strokeStyle;
+    }
+    saveHistory();
+    renderAll();
+    updatePropertiesPanel();
+  });
 
+  // Sloppiness (Roughness)
+  document.getElementById('roughnessGroup').addEventListener('click', (e) => {
+    const btn = e.target.closest('.icon-btn');
+    if (!btn) return;
+    state.roughness = parseFloat(btn.dataset.val);
     for (const id of state.selectedIds) {
       const el = state.elements.find((e) => e.id === id);
       if (el) el.roughness = state.roughness;
     }
+    saveHistory();
     renderAll();
+    updatePropertiesPanel();
+  });
+
+  // Arrow Type (Straight, Curved, Elbow)
+  document.getElementById('arrowTypeGroup').addEventListener('click', (e) => {
+    const btn = e.target.closest('.icon-btn');
+    if (!btn) return;
+    state.arrowType = btn.dataset.val;
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((e) => e.id === id);
+      if (el && el.type === 'arrow') el.arrowType = state.arrowType;
+    }
+    saveHistory();
+    renderAll();
+    updatePropertiesPanel();
+  });
+
+  // Arrowheads Toggles
+  document.getElementById('btnToggleStartHead').addEventListener('click', () => {
+    state.startArrowhead = state.startArrowhead === 'arrow' ? 'none' : 'arrow';
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((e) => e.id === id);
+      if (el && el.type === 'arrow') el.startArrowhead = state.startArrowhead;
+    }
+    saveHistory();
+    renderAll();
+    updatePropertiesPanel();
+  });
+
+  document.getElementById('btnToggleEndHead').addEventListener('click', () => {
+    state.endArrowhead = state.endArrowhead === 'none' ? 'arrow' : 'none';
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((e) => e.id === id);
+      if (el && el.type === 'arrow') el.endArrowhead = state.endArrowhead;
+    }
+    saveHistory();
+    renderAll();
+    updatePropertiesPanel();
+  });
+
+  // Edges (Sharp vs Round)
+  document.getElementById('edgesGroup').addEventListener('click', (e) => {
+    const btn = e.target.closest('.icon-btn');
+    if (!btn) return;
+    state.roundness = btn.dataset.val;
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((e) => e.id === id);
+      if (el && (el.type === 'rectangle' || el.type === 'stickynote')) el.roundness = state.roundness;
+    }
+    saveHistory();
+    renderAll();
+    updatePropertiesPanel();
+  });
+
+  // Opacity Slider
+  const opacitySlider = document.getElementById('opacitySlider');
+  const opacityLabel = document.getElementById('opacityLabel');
+  opacitySlider.addEventListener('input', (e) => {
+    state.opacity = parseInt(e.target.value, 10);
+    opacityLabel.textContent = state.opacity;
+    for (const id of state.selectedIds) {
+      const el = state.elements.find((el) => el.id === id);
+      if (el) el.opacity = state.opacity;
+    }
+    renderAll();
+  });
+  opacitySlider.addEventListener('change', () => {
+    saveHistory();
+  });
+
+  // Layers Ordering
+  document.getElementById('btnSendToBack').addEventListener('click', () => {
+    if (state.selectedIds.size === 0) return;
+    const selected = state.elements.filter((e) => state.selectedIds.has(e.id));
+    const rest = state.elements.filter((e) => !state.selectedIds.has(e.id));
+    state.elements = [...selected, ...rest];
+    saveHistory();
+    renderAll();
+  });
+
+  document.getElementById('btnSendBackward').addEventListener('click', () => {
+    if (state.selectedIds.size === 0) return;
+    for (let i = 1; i < state.elements.length; i++) {
+      if (state.selectedIds.has(state.elements[i].id) && !state.selectedIds.has(state.elements[i - 1].id)) {
+        const temp = state.elements[i];
+        state.elements[i] = state.elements[i - 1];
+        state.elements[i - 1] = temp;
+      }
+    }
+    saveHistory();
+    renderAll();
+  });
+
+  document.getElementById('btnBringForward').addEventListener('click', () => {
+    if (state.selectedIds.size === 0) return;
+    for (let i = state.elements.length - 2; i >= 0; i--) {
+      if (state.selectedIds.has(state.elements[i].id) && !state.selectedIds.has(state.elements[i + 1].id)) {
+        const temp = state.elements[i];
+        state.elements[i] = state.elements[i + 1];
+        state.elements[i + 1] = temp;
+      }
+    }
+    saveHistory();
+    renderAll();
+  });
+
+  document.getElementById('btnBringToFront').addEventListener('click', () => {
+    if (state.selectedIds.size === 0) return;
+    const selected = state.elements.filter((e) => state.selectedIds.has(e.id));
+    const rest = state.elements.filter((e) => !state.selectedIds.has(e.id));
+    state.elements = [...rest, ...selected];
+    saveHistory();
+    renderAll();
+  });
+
+  // Actions
+  document.getElementById('btnDuplicate').addEventListener('click', () => {
+    if (state.selectedIds.size === 0) return;
+    const clones = [];
+    const newSelected = new Set();
+    for (const id of state.selectedIds) {
+      const orig = state.elements.find((e) => e.id === id);
+      if (!orig) continue;
+      const clone = JSON.parse(JSON.stringify(orig));
+      clone.id = generateId();
+      clone.seed = generateSeed();
+      clone.x += 20;
+      clone.y += 20;
+      clones.push(clone);
+      newSelected.add(clone.id);
+    }
+    state.elements.push(...clones);
+    state.selectedIds = newSelected;
+    saveHistory();
+    renderAll();
+    updatePropertiesPanel();
+  });
+
+  document.getElementById('btnDelete').addEventListener('click', () => {
+    if (state.selectedIds.size === 0) return;
+    state.elements = state.elements.filter((e) => !state.selectedIds.has(e.id));
+    state.selectedIds.clear();
+    saveHistory();
+    renderAll();
+    updatePropertiesPanel();
+  });
+
+  document.getElementById('btnCopyJson').addEventListener('click', () => {
+    const selected = state.elements.filter((e) => state.selectedIds.has(e.id));
+    const dataToCopy = selected.length > 0 ? selected : state.elements;
+    navigator.clipboard.writeText(JSON.stringify(dataToCopy, null, 2)).then(() => {
+      alert('Copied element(s) JSON to clipboard!');
+    }).catch(() => {
+      alert('Could not copy to clipboard.');
+    });
   });
 
   // Zoom Controls
@@ -1877,6 +2359,8 @@
 
   // Load the initial demo so the user immediately sees the diagram from the screenshot!
   loadDemoSecurityDiagram();
+  updatePropertiesPanel();
+  updateBottomHint();
 
   if (document.fonts) {
     document.fonts.ready.then(() => {

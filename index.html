@@ -108,6 +108,14 @@
         <span class="tool-key">T</span>
       </button>
 
+      <button class="tool-button" data-tool="stickynote" title="Sticky Note — N">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9l6-6V5a2 2 0 0 0-2-2z"></path>
+          <polyline points="14 21 14 15 20 15"></polyline>
+        </svg>
+        <span class="tool-key">N</span>
+      </button>
+
       <div class="toolbar-divider"></div>
 
       <button class="tool-button" data-tool="eraser" title="Eraser — E">
@@ -121,20 +129,25 @@
 
     <!-- Properties Panel -->
     <aside class="properties-panel" id="propertiesPanel">
-      <div class="prop-group">
-        <span class="prop-label">Stroke</span>
+      <!-- 1. Stroke / Text Color -->
+      <div class="prop-group" id="groupStroke">
+        <span class="prop-label" id="labelStroke">Stroke</span>
         <div class="color-palette" id="strokeColorPalette">
           <div class="color-swatch active" style="background: #1e1e1e;" data-color="#1e1e1e"></div>
           <div class="color-swatch" style="background: #e03131;" data-color="#e03131"></div>
           <div class="color-swatch" style="background: #2f9e44;" data-color="#2f9e44"></div>
           <div class="color-swatch" style="background: #1971c2;" data-color="#1971c2"></div>
           <div class="color-swatch" style="background: #f08c00;" data-color="#f08c00"></div>
-          <div class="color-swatch" style="background: #6741d9;" data-color="#6741d9"></div>
+          <div class="color-swatch color-custom-btn" id="customColorSwatch" title="Custom color">
+            <input type="color" id="customColorPicker" value="#1e1e1e">
+          </div>
         </div>
       </div>
 
-      <div class="prop-group">
-        <span class="prop-label">Background</span>
+      <!-- 2. Background Color -->
+      <div class="prop-group" id="groupBackground">
+        <span class="prop-label" id="labelBackground">Background</span>
+        <!-- Standard palette for shapes -->
         <div class="color-palette" id="bgColorPalette">
           <div class="color-swatch active" style="background: transparent; border: 1px dashed #aaa;" data-color="transparent" title="Transparent"></div>
           <div class="color-swatch" style="background: #ffc9c9;" data-color="#ffc9c9"></div>
@@ -143,23 +156,190 @@
           <div class="color-swatch" style="background: #ffec99;" data-color="#ffec99"></div>
           <div class="color-swatch" style="background: #eebefa;" data-color="#eebefa"></div>
         </div>
-      </div>
-
-      <div class="prop-group">
-        <span class="prop-label">Stroke Width</span>
-        <div class="button-group" id="strokeWidthGroup">
-          <button class="group-btn active" data-val="1">Thin</button>
-          <button class="group-btn" data-val="2">Medium</button>
-          <button class="group-btn" data-val="4">Bold</button>
+        <!-- Pastel palette specifically for Sticky Notes -->
+        <div class="color-palette" id="stickyColorPalette" style="display: none;">
+          <div class="color-swatch active" style="background: #fff3bf;" data-color="#fff3bf" title="Pastel Yellow"></div>
+          <div class="color-swatch" style="background: #ffdeeb;" data-color="#ffdeeb" title="Pastel Pink"></div>
+          <div class="color-swatch" style="background: #d3f9d8;" data-color="#d3f9d8" title="Pastel Green"></div>
+          <div class="color-swatch" style="background: #d0ebff;" data-color="#d0ebff" title="Pastel Blue"></div>
+          <div class="color-swatch" style="background: #ffe8cc;" data-color="#ffe8cc" title="Pastel Peach"></div>
+          <div class="color-swatch" style="background: #ffd43b;" data-color="#ffd43b" title="Bright Yellow"></div>
         </div>
       </div>
 
-      <div class="prop-group">
-        <span class="prop-label">Sloppiness (Roughness)</span>
-        <div class="button-group" id="roughnessGroup">
-          <button class="group-btn" data-val="0">Architect</button>
-          <button class="group-btn active" data-val="1">Artist</button>
-          <button class="group-btn" data-val="2.5">Cartoonist</button>
+      <!-- 3. Stroke Width -->
+      <div class="prop-group" id="groupStrokeWidth">
+        <span class="prop-label">Stroke width</span>
+        <div class="icon-button-group" id="strokeWidthGroup">
+          <button class="icon-btn" data-val="1" title="Thin">
+            <svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.5"></line></svg>
+          </button>
+          <button class="icon-btn active" data-val="2" title="Medium">
+            <svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="3"></line></svg>
+          </button>
+          <button class="icon-btn" data-val="4" title="Bold">
+            <svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="4.5"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. Stroke Style -->
+      <div class="prop-group" id="groupStrokeStyle">
+        <span class="prop-label">Stroke style</span>
+        <div class="icon-button-group" id="strokeStyleGroup">
+          <button class="icon-btn active" data-val="solid" title="Solid">
+            <svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"></line></svg>
+          </button>
+          <button class="icon-btn" data-val="dashed" title="Dashed">
+            <svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3"></line></svg>
+          </button>
+          <button class="icon-btn" data-val="dotted" title="Dotted">
+            <svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2" stroke-dasharray="1.5 3.5" stroke-linecap="round"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 5. Sloppiness (Roughness) -->
+      <div class="prop-group" id="groupRoughness">
+        <span class="prop-label">Sloppiness</span>
+        <div class="icon-button-group" id="roughnessGroup">
+          <button class="icon-btn" data-val="0" title="Architect">
+            <svg viewBox="0 0 24 24"><path d="M4 14c4-3 12-3 16 0" fill="none" stroke="currentColor" stroke-width="2"></path></svg>
+          </button>
+          <button class="icon-btn active" data-val="1" title="Artist">
+            <svg viewBox="0 0 24 24"><path d="M4 15c3-4 8-1 11-3s3 2 5-1" fill="none" stroke="currentColor" stroke-width="2"></path></svg>
+          </button>
+          <button class="icon-btn" data-val="2.5" title="Cartoonist">
+            <svg viewBox="0 0 24 24"><path d="M4 14c3-4 8-1 11-3s3 2 5-1" fill="none" stroke="currentColor" stroke-width="2"></path><path d="M4 16c4-3 7 1 12-2s2 2 4-1" fill="none" stroke="currentColor" stroke-width="1.2"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 6. Arrow Type (for arrows) -->
+      <div class="prop-group" id="groupArrowType">
+        <span class="prop-label">Arrow type</span>
+        <div class="icon-button-group" id="arrowTypeGroup">
+          <button class="icon-btn active" data-val="straight" title="Straight arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="6" y1="18" x2="18" y2="6"></line>
+              <polyline points="10 6 18 6 18 14"></polyline>
+            </svg>
+          </button>
+          <button class="icon-btn" data-val="curved" title="Curved arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 18c0-8 6-12 12-12"></path>
+              <polyline points="12 6 18 6 18 12"></polyline>
+            </svg>
+          </button>
+          <button class="icon-btn" data-val="elbow" title="Elbow / Orthogonal arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 18 12 18 12 6 18 6"></polyline>
+              <polyline points="14 9 18 6 14 3"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 7. Arrowheads (for arrows) -->
+      <div class="prop-group" id="groupArrowheads">
+        <span class="prop-label">Arrowheads</span>
+        <div class="icon-button-group" id="arrowheadsGroup">
+          <button class="icon-btn" id="btnToggleStartHead" title="Toggle start arrowhead">
+            <span style="font-size: 13px; font-weight: bold;">✕—</span>
+          </button>
+          <button class="icon-btn active" id="btnToggleEndHead" title="Toggle end arrowhead">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="13 6 19 12 13 18"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 8. Edges (for Rectangles & Sticky Notes) -->
+      <div class="prop-group" id="groupEdges">
+        <span class="prop-label">Edges</span>
+        <div class="icon-button-group" id="edgesGroup">
+          <button class="icon-btn" data-val="sharp" title="Sharp edges">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="5" width="14" height="14"></rect>
+            </svg>
+          </button>
+          <button class="icon-btn active" data-val="round" title="Round edges">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="5" width="14" height="14" rx="4"></rect>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 9. Opacity Slider -->
+      <div class="prop-group" id="groupOpacity">
+        <span class="prop-label">Opacity</span>
+        <div class="slider-wrapper">
+          <input type="range" class="opacity-slider" id="opacitySlider" min="0" max="100" value="100">
+          <div class="slider-labels">
+            <span>0</span>
+            <span id="opacityLabel">100</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10. Layers (Z-index ordering) -->
+      <div class="prop-group" id="groupLayers">
+        <span class="prop-label">Layers</span>
+        <div class="icon-button-group" id="layersGroup">
+          <button class="icon-btn" id="btnSendToBack" title="Send to back (Cmd + Shift + [)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="4" y1="20" x2="20" y2="20"></line>
+              <polyline points="8 12 12 16 16 12"></polyline>
+              <line x1="12" y1="4" x2="12" y2="16"></line>
+            </svg>
+          </button>
+          <button class="icon-btn" id="btnSendBackward" title="Send backward (Cmd + [)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="8 14 12 18 16 14"></polyline>
+              <line x1="12" y1="6" x2="12" y2="18"></line>
+            </svg>
+          </button>
+          <button class="icon-btn" id="btnBringForward" title="Bring forward (Cmd + ])">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="8 10 12 6 16 10"></polyline>
+              <line x1="12" y1="18" x2="12" y2="6"></line>
+            </svg>
+          </button>
+          <button class="icon-btn" id="btnBringToFront" title="Bring to front (Cmd + Shift + ])">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="4" y1="4" x2="20" y2="4"></line>
+              <polyline points="8 12 12 8 16 12"></polyline>
+              <line x1="12" y1="20" x2="12" y2="8"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 11. Actions -->
+      <div class="prop-group" id="groupActions">
+        <span class="prop-label">Actions</span>
+        <div class="icon-button-group" id="actionsGroup">
+          <button class="icon-btn" id="btnDuplicate" title="Duplicate (Cmd + D)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <button class="icon-btn" id="btnDelete" title="Delete (Delete / Backspace)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+          <button class="icon-btn" id="btnCopyJson" title="Copy as JSON to clipboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+          </button>
         </div>
       </div>
     </aside>
