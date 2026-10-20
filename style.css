@@ -137,6 +137,40 @@ canvas {
   z-index: 10;
 }
 
+/* Toolbar Action Hint (Matches Excalidraw's multi-point drawing hint) */
+.toolbar-hint {
+  position: absolute;
+  top: 66px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #797980;
+  pointer-events: none;
+  z-index: 99;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.toolbar-hint.visible {
+  display: flex;
+}
+
+.toolbar-hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #55555c;
+  background-color: #f1f1f5;
+  border: 1px solid #d4d4db;
+  border-radius: 4px;
+}
+
 .tool-button {
   display: flex;
   align-items: center;

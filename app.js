@@ -26,15 +26,20 @@
 
     // Interaction flags
     isDragging: false,
-    dragMode: null, // 'draw' | 'move' | 'pan' | 'boxSelect' | 'resize'
+    dragMode: null, // 'draw' | 'move' | 'pan' | 'boxSelect' | 'resize' | 'rotate' | 'dragPoint'
     dragStart: { x: 0, y: 0 },
     lastPointerScreen: { x: 0, y: 0 },
     lastPointerScene: { x: 0, y: 0 },
     spacePressed: false,
-    resizingHandle: null,
+    resizeHandle: null,
+    resizeOrigBounds: null,
+    resizeOrigElement: null,
+    rotateElement: null,
+    draggingPoint: null,
 
     // Live drawing / binding
     currentElement: null,
+    multiPointElement: null,
     bindingCandidate: null, // { elementId, fixedPoint: [rx, ry], point: [x,y] }
     boxSelectBounds: null,
 
@@ -590,6 +595,15 @@
       ctx.globalAlpha = Math.max(0, Math.min(1, el.opacity / 100));
     }
 
+    if (el.angle) {
+      const b = getElementBounds(el);
+      const cx = b.x + b.width / 2;
+      const cy = b.y + b.height / 2;
+      ctx.translate(cx, cy);
+      ctx.rotate(el.angle);
+      ctx.translate(-cx, -cy);
+    }
+
     let strokeLineDash = [];
     if (el.strokeStyle === 'dashed') strokeLineDash = [8, 8];
     else if (el.strokeStyle === 'dotted') strokeLineDash = [2, 6];
@@ -809,11 +823,33 @@
     interactiveCtx.scale(dpr * state.zoom, dpr * state.zoom);
     interactiveCtx.translate(state.scrollX, state.scrollY);
 
-    // 1. Draw live element being created
+    // 1. Draw live element being created (single stroke drag)
     if (state.currentElement && state.dragMode === 'draw') {
       if (roughInteractive) {
         drawElement(interactiveCtx, roughInteractive, state.currentElement);
       }
+    }
+
+    // 1b. Draw active multi-point arrow or line being drawn (click-to-draw mode)
+    if (state.multiPointElement) {
+      if (roughInteractive) {
+        drawElement(interactiveCtx, roughInteractive, state.multiPointElement);
+      }
+      const el = state.multiPointElement;
+      interactiveCtx.save();
+      for (let i = 0; i < el.points.length; i++) {
+        const px = el.x + el.points[i][0];
+        const py = el.y + el.points[i][1];
+        const isTrailing = (i === el.points.length - 1);
+        interactiveCtx.fillStyle = isTrailing ? 'rgba(76, 110, 245, 0.3)' : '#ffffff';
+        interactiveCtx.strokeStyle = '#4c6ef5';
+        interactiveCtx.lineWidth = 1.6 / state.zoom;
+        interactiveCtx.beginPath();
+        interactiveCtx.arc(px, py, (isTrailing ? 4 : 5) / state.zoom, 0, Math.PI * 2);
+        interactiveCtx.fill();
+        interactiveCtx.stroke();
+      }
+      interactiveCtx.restore();
     }
 
     // 2. Draw Smart Arrow Snap / Binding Candidate Highlight
@@ -875,41 +911,64 @@
         if (!el) continue;
 
         if (el.type === 'arrow' || el.type === 'line') {
-          // Linear Element: Bounding Box, Midpoint Handles and Circular Vertex Handles (Excalidraw style)
-          const bounds = getElementBounds(el);
-          interactiveCtx.save();
-          interactiveCtx.strokeStyle = 'rgba(105, 101, 219, 0.45)';
-          interactiveCtx.lineWidth = 1 / state.zoom;
-          interactiveCtx.setLineDash([]);
-          interactiveCtx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+          const isStraight2Pt = el.points.length === 2 && (el.arrowType === 'straight' || el.arrowType === 'sharp' || !el.arrowType);
 
-          // Corner handles on bounds
-          const handles = getHandleCoordinates(bounds);
-          const handleSize = 6 / state.zoom;
-          interactiveCtx.fillStyle = '#ffffff';
-          interactiveCtx.strokeStyle = '#6965db';
-          interactiveCtx.lineWidth = 1.2 / state.zoom;
-          for (const h of Object.values(handles)) {
-            interactiveCtx.fillRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
-            interactiveCtx.strokeRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+          interactiveCtx.save();
+
+          // Curved or multi-point linear elements HAVE bounding box, corner handles, and rotation handle!
+          // Straight 2-point linear elements have NO bounding box, NO corner handles, NO rotation handle!
+          if (!isStraight2Pt) {
+            const bounds = getElementBounds(el);
+            interactiveCtx.strokeStyle = 'rgba(105, 101, 219, 0.5)';
+            interactiveCtx.lineWidth = 1 / state.zoom;
+            interactiveCtx.setLineDash([]);
+            interactiveCtx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+            // Corner handles on bounds
+            const handles = getHandleCoordinates(bounds);
+            const handleSize = 6 / state.zoom;
+            interactiveCtx.fillStyle = '#ffffff';
+            interactiveCtx.strokeStyle = '#6965db';
+            interactiveCtx.lineWidth = 1.2 / state.zoom;
+            for (const h of Object.values(handles)) {
+              interactiveCtx.fillRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+              interactiveCtx.strokeRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+            }
+
+            // Top rotation handle
+            const rotX = bounds.x + bounds.width / 2;
+            const rotY = bounds.y - 18 / state.zoom;
+            interactiveCtx.fillStyle = '#ffffff';
+            interactiveCtx.strokeStyle = '#6965db';
+            interactiveCtx.lineWidth = 1.2 / state.zoom;
+            interactiveCtx.beginPath();
+            interactiveCtx.arc(rotX, rotY, 3.5 / state.zoom, 0, Math.PI * 2);
+            interactiveCtx.fill();
+            interactiveCtx.stroke();
           }
 
           const absPts = el.points.map((p) => ({ x: el.x + p[0], y: el.y + p[1] }));
 
           // Midpoint handles (insert new vertex by dragging)
+          // Solid lavender circle directly on line / curve (matching Image 2)
           for (let i = 0; i < absPts.length - 1; i++) {
-            const mx = (absPts[i].x + absPts[i + 1].x) / 2;
-            const my = (absPts[i].y + absPts[i + 1].y) / 2;
-            interactiveCtx.fillStyle = '#ffffff';
-            interactiveCtx.strokeStyle = 'rgba(105, 101, 219, 0.7)';
-            interactiveCtx.lineWidth = 1.2 / state.zoom;
+            let mx = (absPts[i].x + absPts[i + 1].x) / 2;
+            let my = (absPts[i].y + absPts[i + 1].y) / 2;
+            if (el.arrowType === 'curved' && el.points.length === 2) {
+              const dx = absPts[1].x - absPts[0].x;
+              const dy = absPts[1].y - absPts[0].y;
+              const dist = Math.hypot(dx, dy) || 1;
+              const curveOffset = Math.min(dist * 0.22, 45);
+              mx += (-dy / dist) * curveOffset;
+              my += (dx / dist) * curveOffset;
+            }
+            interactiveCtx.fillStyle = '#b2b0ec';
             interactiveCtx.beginPath();
-            interactiveCtx.arc(mx, my, 3.5 / state.zoom, 0, Math.PI * 2);
+            interactiveCtx.arc(mx, my, 4.5 / state.zoom, 0, Math.PI * 2);
             interactiveCtx.fill();
-            interactiveCtx.stroke();
           }
 
-          // Vertex handles (movable control points/dots) - exactly matching Image 2 & 5!
+          // Vertex handles (movable control points/dots) - matching Image 1 & 2
           for (let i = 0; i < absPts.length; i++) {
             interactiveCtx.fillStyle = '#ffffff';
             interactiveCtx.strokeStyle = '#4c6ef5';
@@ -922,14 +981,24 @@
 
           interactiveCtx.restore();
         } else {
-          // Standard Box Elements (Rectangles, Ellipses, Sticky Notes, Diamonds)
+          // Standard Box Elements (Rectangles, Ellipses, Sticky Notes, Diamonds, Text)
           const bounds = getElementBounds(el);
           interactiveCtx.save();
+          if (el.angle) {
+            const cx = bounds.x + bounds.width / 2;
+            const cy = bounds.y + bounds.height / 2;
+            interactiveCtx.translate(cx, cy);
+            interactiveCtx.rotate(el.angle);
+            interactiveCtx.translate(-cx, -cy);
+          }
+
+          // Tight selection box (0 padding, matching Excalidraw exactly!)
           interactiveCtx.strokeStyle = '#6965db';
           interactiveCtx.lineWidth = 1.5 / state.zoom;
           interactiveCtx.setLineDash([]);
           interactiveCtx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
+          // 4 Corner handles
           interactiveCtx.fillStyle = '#ffffff';
           interactiveCtx.strokeStyle = '#6965db';
           interactiveCtx.lineWidth = 1.5 / state.zoom;
@@ -941,6 +1010,18 @@
             interactiveCtx.fillRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
             interactiveCtx.strokeRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
           }
+
+          // Top rotation handle
+          const rotX = bounds.x + bounds.width / 2;
+          const rotY = bounds.y - 18 / state.zoom;
+          interactiveCtx.fillStyle = '#ffffff';
+          interactiveCtx.strokeStyle = '#6965db';
+          interactiveCtx.lineWidth = 1.5 / state.zoom;
+          interactiveCtx.beginPath();
+          interactiveCtx.arc(rotX, rotY, 4 / state.zoom, 0, Math.PI * 2);
+          interactiveCtx.fill();
+          interactiveCtx.stroke();
+
           interactiveCtx.restore();
         }
       }
@@ -990,18 +1071,18 @@
         maxY = Math.max(maxY, cy);
       }
       return {
-        x: minX - 8,
-        y: minY - 8,
-        width: Math.max(16, maxX - minX + 16),
-        height: Math.max(16, maxY - minY + 16),
+        x: minX,
+        y: minY,
+        width: Math.max(1, maxX - minX),
+        height: Math.max(1, maxY - minY),
       };
     }
     const minX = Math.min(el.x, el.x + el.width);
     const minY = Math.min(el.y, el.y + el.height);
     const w = Math.abs(el.width);
     const h = Math.abs(el.height);
-    const pad = 4 / state.zoom;
-    return { x: minX - pad, y: minY - pad, width: w + pad * 2, height: h + pad * 2 };
+    // Zero arbitrary padding: frame selection hugs shapes directly!
+    return { x: minX, y: minY, width: Math.max(1, w), height: Math.max(1, h) };
   }
 
   function getHandleCoordinates(b) {
@@ -1037,8 +1118,16 @@
 
     // 2. Check midpoint handles
     for (let i = 0; i < absPts.length - 1; i++) {
-      const midX = (absPts[i].x + absPts[i + 1].x) / 2;
-      const midY = (absPts[i].y + absPts[i + 1].y) / 2;
+      let midX = (absPts[i].x + absPts[i + 1].x) / 2;
+      let midY = (absPts[i].y + absPts[i + 1].y) / 2;
+      if (el.arrowType === 'curved' && el.points.length === 2) {
+        const dx = absPts[1].x - absPts[0].x;
+        const dy = absPts[1].y - absPts[0].y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const curveOffset = Math.min(dist * 0.22, 45);
+        midX += (-dy / dist) * curveOffset;
+        midY += (dx / dist) * curveOffset;
+      }
       if (distance(pt.x, pt.y, midX, midY) <= threshold) {
         return {
           type: 'midpoint',
@@ -1052,18 +1141,103 @@
     return null;
   }
 
+  function hitTestSelectionHandles(scenePt) {
+    if (state.selectedIds.size !== 1) return null;
+    const selectedId = Array.from(state.selectedIds)[0];
+    const el = state.elements.find((e) => e.id === selectedId);
+    if (!el) return null;
+
+    // Normal straight 2-point arrow has NO bounding box frame and NO corner/rotation handles!
+    const isStraight2Pt = (el.type === 'arrow' || el.type === 'line') &&
+                          el.points.length === 2 &&
+                          (el.arrowType === 'straight' || el.arrowType === 'sharp' || !el.arrowType);
+    if (isStraight2Pt) return null;
+
+    const b = getElementBounds(el);
+    let testPt = scenePt;
+    if (el.angle) {
+      const cx = b.x + b.width / 2;
+      const cy = b.y + b.height / 2;
+      const cos = Math.cos(-el.angle);
+      const sin = Math.sin(-el.angle);
+      const dx = scenePt.x - cx;
+      const dy = scenePt.y - cy;
+      testPt = {
+        x: cx + dx * cos - dy * sin,
+        y: cy + dx * sin + dy * cos,
+      };
+    }
+
+    const threshold = 10 / state.zoom;
+
+    // 1. Rotation handle at top center
+    const rotX = b.x + b.width / 2;
+    const rotY = b.y - 18 / state.zoom;
+    if (distance(testPt.x, testPt.y, rotX, rotY) <= threshold) {
+      return { type: 'rotation', element: el };
+    }
+
+    // 2. Corner resize handles
+    const handles = {
+      nw: { x: b.x, y: b.y },
+      ne: { x: b.x + b.width, y: b.y },
+      se: { x: b.x + b.width, y: b.y + b.height },
+      sw: { x: b.x, y: b.y + b.height },
+    };
+
+    for (const [key, pt] of Object.entries(handles)) {
+      if (distance(testPt.x, testPt.y, pt.x, pt.y) <= threshold) {
+        return { type: 'resize', handle: key, element: el, bounds: b };
+      }
+    }
+
+    return null;
+  }
+
   function hitTestElement(el, pt) {
+    let testPt = pt;
+    if (el.angle && (el.type === 'rectangle' || el.type === 'stickynote' || el.type === 'diamond' || el.type === 'ellipse' || el.type === 'text')) {
+      const cx = el.x + el.width / 2;
+      const cy = el.y + el.height / 2;
+      const cos = Math.cos(-el.angle);
+      const sin = Math.sin(-el.angle);
+      const dx = pt.x - cx;
+      const dy = pt.y - cy;
+      testPt = {
+        x: cx + dx * cos - dy * sin,
+        y: cy + dx * sin + dy * cos,
+      };
+    }
+
     if (el.type === 'rectangle' || el.type === 'stickynote' || el.type === 'diamond' || el.type === 'ellipse' || el.type === 'text') {
       const minX = Math.min(el.x, el.x + el.width);
       const maxX = Math.max(el.x, el.x + el.width);
       const minY = Math.min(el.y, el.y + el.height);
       const maxY = Math.max(el.y, el.y + el.height);
-      return pt.x >= minX - 4 && pt.x <= maxX + 4 && pt.y >= minY - 4 && pt.y <= maxY + 4;
+      return testPt.x >= minX - 4 && testPt.x <= maxX + 4 && testPt.y >= minY - 4 && testPt.y <= maxY + 4;
     } else if (el.type === 'arrow' || el.type === 'line') {
       const pts = el.points.map((p) => ({ x: el.x + p[0], y: el.y + p[1] }));
+      if (el.arrowType === 'curved' && pts.length === 2) {
+        const p1 = pts[0];
+        const p2 = pts[1];
+        const mx = (p1.x + p2.x) / 2;
+        const my = (p1.y + p2.y) / 2;
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const curveOffset = Math.min(dist * 0.22, 45);
+        const cx = mx + (-dy / dist) * curveOffset;
+        const cy = my + (dx / dist) * curveOffset;
+        for (let t = 0; t <= 1; t += 0.05) {
+          const qx = (1 - t) * (1 - t) * p1.x + 2 * (1 - t) * t * cx + t * t * p2.x;
+          const qy = (1 - t) * (1 - t) * p1.y + 2 * (1 - t) * t * cy + t * t * p2.y;
+          if (distance(pt.x, pt.y, qx, qy) <= 12 / state.zoom) return true;
+        }
+        return false;
+      }
       for (let i = 0; i < pts.length - 1; i++) {
         const d = distToSegment(pt, pts[i], pts[i + 1]);
-        if (d <= 10 / state.zoom) return true;
+        if (d <= 12 / state.zoom) return true;
       }
       return false;
     }
@@ -1085,6 +1259,79 @@
       }
     }
     return null;
+  }
+
+  // --- Multi-point Arrow / Line Lifecycle ---
+
+  function showToolbarHint() {
+    const el = document.getElementById('toolbarHint');
+    if (el) el.classList.add('visible');
+  }
+
+  function hideToolbarHint() {
+    const el = document.getElementById('toolbarHint');
+    if (el) el.classList.remove('visible');
+  }
+
+  function finishMultiPointDrawing() {
+    if (!state.multiPointElement) return;
+    const el = state.multiPointElement;
+    state.multiPointElement = null;
+    hideToolbarHint();
+
+    // Pop trailing preview point
+    if (el.points.length > 2) {
+      el.points.pop();
+    }
+
+    let totalLen = 0;
+    for (let i = 1; i < el.points.length; i++) {
+      totalLen += distance(el.points[i - 1][0], el.points[i - 1][1], el.points[i][0], el.points[i][1]);
+    }
+
+    if (totalLen > 6 && el.points.length >= 2) {
+      if (el.type === 'arrow') {
+        const lastPt = el.points[el.points.length - 1];
+        const endScenePt = { x: el.x + lastPt[0], y: el.y + lastPt[1] };
+        const target = findBindingTarget(endScenePt, el.id);
+        if (target) {
+          el.endBinding = {
+            elementId: target.elementId,
+            fixedPoint: target.fixedPoint,
+            gap: BASE_BINDING_GAP,
+          };
+          if (!target.element.boundElements) target.element.boundElements = [];
+          target.element.boundElements.push({ id: el.id, type: 'arrow' });
+        }
+        updateArrowPoints(el);
+      }
+
+      state.elements.push(el);
+      saveHistory();
+      if (!state.isLocked) {
+        setTool('selection');
+        state.selectedIds.clear();
+        state.selectedIds.add(el.id);
+      }
+    }
+
+    state.bindingCandidate = null;
+    renderAll();
+    updatePropertiesPanel();
+    updateBottomHint();
+  }
+
+  function cancelOrFinishMultiPointDrawing() {
+    if (!state.multiPointElement) return;
+    if (state.multiPointElement.points.length > 2) {
+      finishMultiPointDrawing();
+    } else {
+      state.multiPointElement = null;
+      hideToolbarHint();
+      state.bindingCandidate = null;
+      renderAll();
+      updateBottomHint();
+    }
   }
 
   // --- Pointer Event Handlers ---
@@ -1114,6 +1361,30 @@
     }
 
     if (e.button !== 0) return; // Only left click for tools
+
+    // Active multi-point drawing mode (Arrow or Line)
+    if (state.multiPointElement) {
+      const el = state.multiPointElement;
+      const pts = el.points;
+      const lastPlacedIdx = pts.length - 2;
+      const lastPlacedPt = {
+        x: el.x + pts[lastPlacedIdx][0],
+        y: el.y + pts[lastPlacedIdx][1],
+      };
+      const distToLast = distance(scenePt.x, scenePt.y, lastPlacedPt.x, lastPlacedPt.y);
+      if (distToLast <= 14 / state.zoom) {
+        finishMultiPointDrawing();
+        return;
+      }
+
+      // Lock current point and append a new trailing preview point
+      let targetPt = scenePt;
+      if (state.bindingCandidate) targetPt = state.bindingCandidate.snapPoint;
+      pts[pts.length - 1] = [targetPt.x - el.x, targetPt.y - el.y];
+      pts.push([targetPt.x - el.x, targetPt.y - el.y]);
+      renderInteractive();
+      return;
+    }
 
     // Tool: Eraser
     if (state.activeTool === 'eraser') {
@@ -1175,7 +1446,7 @@
         startArrowhead: state.startArrowhead,
         endArrowhead: state.endArrowhead,
         seed: generateSeed(),
-        points: [[0, 0], [1, 1]],
+        points: [[0, 0], [0, 0]],
         startBinding: null,
         endBinding: null,
         boundElements: [],
@@ -1204,6 +1475,7 @@
 
     // Tool: Selection
     if (state.activeTool === 'selection') {
+      // 1. Check linear handles (movable control dots)
       const handleHit = hitTestLinearHandles(scenePt);
       if (handleHit) {
         if (handleHit.type === 'midpoint') {
@@ -1223,6 +1495,21 @@
           };
         }
         renderAll();
+        return;
+      }
+
+      // 2. Check selection handles (corner resize and top rotation)
+      const selHandle = hitTestSelectionHandles(scenePt);
+      if (selHandle) {
+        if (selHandle.type === 'rotation') {
+          state.dragMode = 'rotate';
+          state.rotateElement = selHandle.element;
+        } else if (selHandle.type === 'resize') {
+          state.dragMode = 'resize';
+          state.resizeHandle = selHandle.handle;
+          state.resizeOrigBounds = { ...selHandle.bounds };
+          state.resizeOrigElement = { ...selHandle.element };
+        }
         return;
       }
     }
@@ -1247,6 +1534,80 @@
 
   interactiveCanvas.addEventListener('pointermove', (e) => {
     const scenePt = screenToScene(e.clientX, e.clientY);
+
+    // 0. Active multi-point drawing preview follows cursor
+    if (state.multiPointElement) {
+      const el = state.multiPointElement;
+      let targetPt = scenePt;
+      if (el.type === 'arrow') {
+        const cand = findBindingTarget(scenePt, el.id);
+        state.bindingCandidate = cand;
+        if (cand) targetPt = cand.snapPoint;
+      }
+      el.points[el.points.length - 1] = [targetPt.x - el.x, targetPt.y - el.y];
+      renderInteractive();
+      return;
+    }
+
+    // Rotate Mode
+    if (state.dragMode === 'rotate' && state.rotateElement) {
+      const el = state.rotateElement;
+      const b = getElementBounds(el);
+      const cx = b.x + b.width / 2;
+      const cy = b.y + b.height / 2;
+      el.angle = Math.atan2(scenePt.y - cy, scenePt.x - cx) + Math.PI / 2;
+      renderAll();
+      return;
+    }
+
+    // Resize Mode
+    if (state.dragMode === 'resize' && state.resizeOrigElement) {
+      const el = state.elements.find((item) => item.id === state.resizeOrigElement.id);
+      if (el) {
+        const orig = state.resizeOrigBounds;
+        const handle = state.resizeHandle;
+
+        if (handle === 'se') {
+          el.width = Math.max(10, scenePt.x - el.x);
+          el.height = Math.max(10, scenePt.y - el.y);
+        } else if (handle === 'sw') {
+          const right = orig.x + orig.width;
+          const newW = right - scenePt.x;
+          if (newW > 10) {
+            el.x = scenePt.x;
+            el.width = newW;
+          }
+          el.height = Math.max(10, scenePt.y - el.y);
+        } else if (handle === 'ne') {
+          el.width = Math.max(10, scenePt.x - el.x);
+          const bottom = orig.y + orig.height;
+          const newH = bottom - scenePt.y;
+          if (newH > 10) {
+            el.y = scenePt.y;
+            el.height = newH;
+          }
+        } else if (handle === 'nw') {
+          const right = orig.x + orig.width;
+          const bottom = orig.y + orig.height;
+          const newW = right - scenePt.x;
+          const newH = bottom - scenePt.y;
+          if (newW > 10) {
+            el.x = scenePt.x;
+            el.width = newW;
+          }
+          if (newH > 10) {
+            el.y = scenePt.y;
+            el.height = newH;
+          }
+        }
+
+        if (el.boundElements) {
+          updateBoundArrowsForShape(el);
+        }
+        renderAll();
+        return;
+      }
+    }
 
     // Dragging point handle of arrow/line
     if (state.dragMode === 'dragPoint' && state.draggingPoint) {
@@ -1301,8 +1662,8 @@
     }
 
     // Hover effect for Arrow Tool: live snap indicator
-    if (state.activeTool === 'arrow' || (state.dragMode === 'draw' && state.currentElement?.type === 'arrow')) {
-      const candidate = findBindingTarget(scenePt, state.currentElement?.id);
+    if (state.activeTool === 'arrow' || (state.dragMode === 'draw' && state.currentElement?.type === 'arrow') || state.multiPointElement?.type === 'arrow') {
+      const candidate = findBindingTarget(scenePt, state.currentElement?.id || state.multiPointElement?.id);
       if (candidate) {
         state.bindingCandidate = candidate;
       } else {
@@ -1317,8 +1678,19 @@
         if (handleHit) {
           interactiveCanvas.style.cursor = 'grab';
         } else {
-          const hit = hitTestTopElement(scenePt);
-          interactiveCanvas.style.cursor = hit ? 'move' : 'default';
+          const selHandle = hitTestSelectionHandles(scenePt);
+          if (selHandle) {
+            if (selHandle.type === 'rotation') {
+              interactiveCanvas.style.cursor = 'grab';
+            } else if (selHandle.handle === 'nw' || selHandle.handle === 'se') {
+              interactiveCanvas.style.cursor = 'nwse-resize';
+            } else {
+              interactiveCanvas.style.cursor = 'nesw-resize';
+            }
+          } else {
+            const hit = hitTestTopElement(scenePt);
+            interactiveCanvas.style.cursor = hit ? 'move' : 'default';
+          }
         }
       }
       return;
@@ -1424,6 +1796,17 @@
     state.isDragging = false;
     const scenePt = screenToScene(e.clientX, e.clientY);
 
+    if (state.dragMode === 'rotate' || state.dragMode === 'resize') {
+      saveHistory();
+      state.dragMode = null;
+      state.rotateElement = null;
+      state.resizeHandle = null;
+      state.resizeOrigBounds = null;
+      state.resizeOrigElement = null;
+      renderAll();
+      return;
+    }
+
     if (state.dragMode === 'dragPoint') {
       saveHistory();
       state.dragMode = null;
@@ -1449,19 +1832,48 @@
     if (state.dragMode === 'draw' && state.currentElement) {
       const el = state.currentElement;
 
-      // Finalize arrow end binding
-      if (el.type === 'arrow') {
-        const target = findBindingTarget(scenePt, el.id);
-        if (target) {
-          el.endBinding = {
-            elementId: target.elementId,
-            fixedPoint: target.fixedPoint,
-            gap: BASE_BINDING_GAP,
-          };
-          if (!target.element.boundElements) target.element.boundElements = [];
-          target.element.boundElements.push({ id: el.id, type: 'arrow' });
+      // Handle Arrow / Line creation: Single-stroke drag vs Click-to-draw
+      if (el.type === 'arrow' || el.type === 'line') {
+        const movedDist = distance(state.dragStart.x, state.dragStart.y, scenePt.x, scenePt.y);
+        if (movedDist <= 6) {
+          // USER CLICKED! Switch to active multi-point drawing mode
+          state.multiPointElement = el;
+          state.currentElement = null;
+          state.dragMode = null;
+          state.isDragging = false;
+          showToolbarHint();
+          updateBottomHint();
+          renderInteractive();
+          return;
+        } else {
+          // USER DRAGGED! Finalize single-stroke arrow/line immediately
+          if (el.type === 'arrow') {
+            const target = findBindingTarget(scenePt, el.id);
+            if (target) {
+              el.endBinding = {
+                elementId: target.elementId,
+                fixedPoint: target.fixedPoint,
+                gap: BASE_BINDING_GAP,
+              };
+              if (!target.element.boundElements) target.element.boundElements = [];
+              target.element.boundElements.push({ id: el.id, type: 'arrow' });
+            }
+            updateArrowPoints(el);
+          }
+          state.elements.push(el);
+          saveHistory();
+          if (!state.isLocked) {
+            setTool('selection');
+            state.selectedIds.clear();
+            state.selectedIds.add(el.id);
+          }
+          state.currentElement = null;
+          state.bindingCandidate = null;
+          state.dragMode = null;
+          renderAll();
+          updatePropertiesPanel();
+          return;
         }
-        updateArrowPoints(el);
       }
 
       if (el.type === 'stickynote') {
@@ -1486,9 +1898,7 @@
       }
 
       // Commit element if non-zero size
-      const isTiny = (el.type === 'arrow' || el.type === 'line')
-        ? distance(0, 0, el.points[1][0], el.points[1][1]) < 5
-        : Math.abs(el.width) < 5 && Math.abs(el.height) < 5;
+      const isTiny = Math.abs(el.width) < 5 && Math.abs(el.height) < 5;
 
       if (!isTiny) {
         state.elements.push(el);
@@ -1512,6 +1922,12 @@
 
   // --- Double-click to Edit Text or Create / Delete Linear Vertices ---
   interactiveCanvas.addEventListener('dblclick', (e) => {
+    // If multi-point drawing is active, double click finishes drawing!
+    if (state.multiPointElement) {
+      finishMultiPointDrawing();
+      return;
+    }
+
     const scenePt = screenToScene(e.clientX, e.clientY);
     const hitEl = hitTestTopElement(scenePt);
 
@@ -1820,6 +2236,20 @@
       return;
     }
 
+    // Enter or Esc to finish or cancel multi-point drawing
+    if (e.key === 'Enter') {
+      if (state.multiPointElement) {
+        finishMultiPointDrawing();
+        return;
+      }
+    }
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      if (state.multiPointElement) {
+        cancelOrFinishMultiPointDrawing();
+        return;
+      }
+    }
+
     if (e.code === 'Space' && !state.spacePressed) {
       state.spacePressed = true;
       interactiveCanvas.style.cursor = 'grab';
@@ -1889,6 +2319,9 @@
   // --- Toolbar & Dynamic Properties Panel ---
 
   function setTool(toolName) {
+    if (state.multiPointElement && toolName !== state.multiPointElement.type) {
+      cancelOrFinishMultiPointDrawing();
+    }
     state.activeTool = toolName;
     document.querySelectorAll('.tool-button').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.tool === toolName);
@@ -1901,15 +2334,21 @@
   function updateBottomHint() {
     const hintEl = document.querySelector('.bottom-hint');
     if (!hintEl) return;
+    if (state.multiPointElement) {
+      hintEl.innerHTML = 'Click on last point or press <kbd>Esc</kbd> or <kbd>Enter</kbd> to finish';
+      return;
+    }
     const tool = state.activeTool;
     if (tool === 'arrow') {
-      hintEl.innerHTML = 'Click to start multiple points, drag for single line. Press <kbd>A</kbd> again to change arrow type.';
+      hintEl.innerHTML = 'Click to draw multi-point arrow, or drag for single arrow. Press <kbd>A</kbd> again to switch arrow type.';
+    } else if (tool === 'line') {
+      hintEl.innerHTML = 'Click to draw multi-point line, or drag for single line.';
     } else if (tool === 'stickynote') {
       hintEl.innerHTML = 'Click to place a note, or drag to size it';
     } else if (tool === 'text') {
       hintEl.innerHTML = 'Text tool (<kbd>T</kbd>): click anywhere to write • Click outside to finish • Hold <kbd>Space</kbd> to pan';
     } else if (tool === 'selection') {
-      hintEl.innerHTML = 'Selection tool (<kbd>V</kbd>): click to select • Drag to box-select • Double-click shape to add text';
+      hintEl.innerHTML = 'Selection tool (<kbd>V</kbd>): click to select • Drag corner to resize • Drag top dot to rotate';
     } else if (tool === 'hand') {
       hintEl.innerHTML = 'Hand tool (<kbd>H</kbd>): drag canvas to pan • Mouse wheel to zoom';
     } else if (tool === 'eraser') {
@@ -2729,6 +3168,9 @@
     });
   }
 
-  window.drawo = { state, renderAll, screenToScene, sceneToScreen };
+  window.drawo = { state, renderAll, screenToScene, sceneToScreen, setTool, getElementBounds };
   window.__miniExcalidraw = window.drawo;
+  window.state = state;
+  window.renderAll = renderAll;
+  window.setTool = setTool;
 })();
