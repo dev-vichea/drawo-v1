@@ -770,10 +770,23 @@
     if (state.activeTool === 'text') {
       const hitEl = hitTestTopElement(scenePt);
       if (hitEl) {
-        if (hitEl.type === 'rectangle' || hitEl.type === 'diamond' || hitEl.type === 'ellipse') {
-          openTextEditorForContainer(hitEl);
-        } else if (hitEl.type === 'text') {
+        if (hitEl.type === 'text') {
           openTextEditor(hitEl.x, hitEl.y, hitEl);
+        } else if (
+          (hitEl.type === 'rectangle' || hitEl.type === 'diamond' || hitEl.type === 'ellipse') &&
+          !e.ctrlKey &&
+          !e.metaKey
+        ) {
+          const cx = hitEl.x + hitEl.width / 2;
+          const cy = hitEl.y + hitEl.height / 2;
+          const distToCenter = Math.hypot(scenePt.x - cx, scenePt.y - cy);
+          // Only bind as container center text if clicking within 30px of the shape's center OR if container already has text
+          if (hitEl.text || distToCenter < 30) {
+            openTextEditorForContainer(hitEl);
+          } else {
+            // Free-floating text placed exactly at the click coordinates!
+            openTextEditor(scenePt.x, scenePt.y);
+          }
         } else {
           openTextEditor(scenePt.x, scenePt.y);
         }
@@ -1122,17 +1135,23 @@
       sceneY: containerEl.y,
     };
 
-    const screenPos = sceneToScreen(containerEl.x, containerEl.y);
+    const cx = containerEl.x + containerEl.width / 2;
+    const cy = containerEl.y + containerEl.height / 2;
+    const screenCenter = sceneToScreen(cx, cy);
     const screenW = containerEl.width * state.zoom;
-    const screenH = containerEl.height * state.zoom;
+    const fontSize = (containerEl.fontSize || 16) * state.zoom;
+    const lineHeight = fontSize * 1.35;
+    const lines = (containerEl.text || 'A').split('\n');
+    const estimatedH = Math.max(lines.length * lineHeight, lineHeight + 8);
+    const editorW = Math.max(screenW - 20, 120);
 
     textEditor.style.display = 'block';
-    textEditor.style.left = screenPos.x + 'px';
-    textEditor.style.top = screenPos.y + 'px';
-    textEditor.style.width = Math.max(screenW, 140) + 'px';
-    textEditor.style.height = Math.max(screenH, 50) + 'px';
+    textEditor.style.width = editorW + 'px';
+    textEditor.style.left = (screenCenter.x - editorW / 2) + 'px';
+    textEditor.style.top = (screenCenter.y - estimatedH / 2) + 'px';
+    textEditor.style.height = estimatedH + 'px';
     textEditor.style.textAlign = 'center';
-    textEditor.style.fontSize = (containerEl.fontSize || 16) * state.zoom + 'px';
+    textEditor.style.fontSize = fontSize + 'px';
     textEditor.style.color = containerEl.strokeColor || '#1e1e1e';
     textEditor.value = containerEl.text || '';
 
@@ -1191,10 +1210,20 @@
   };
 
   textEditor.addEventListener('input', () => {
-    textEditor.style.width = 'auto';
-    textEditor.style.width = Math.max(textEditor.scrollWidth + 24, 160) + 'px';
-    textEditor.style.height = 'auto';
-    textEditor.style.height = Math.max(textEditor.scrollHeight, 40) + 'px';
+    if (state.editingText?.container) {
+      const containerEl = state.editingText.container;
+      const cy = containerEl.y + containerEl.height / 2;
+      const screenCenter = sceneToScreen(containerEl.x + containerEl.width / 2, cy);
+      textEditor.style.height = 'auto';
+      const newH = Math.max(textEditor.scrollHeight, 28);
+      textEditor.style.height = newH + 'px';
+      textEditor.style.top = screenCenter.y - newH / 2 + 'px';
+    } else {
+      textEditor.style.width = 'auto';
+      textEditor.style.width = Math.max(textEditor.scrollWidth + 24, 160) + 'px';
+      textEditor.style.height = 'auto';
+      textEditor.style.height = Math.max(textEditor.scrollHeight, 30) + 'px';
+    }
   });
 
   function eraseAtPoint(pt) {
