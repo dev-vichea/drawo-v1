@@ -1,5 +1,4 @@
 import { eyeIcon } from "@excalidraw/excalidraw/components/icons";
-import { useI18n } from "@excalidraw/excalidraw/i18n";
 import { MainMenu } from "@excalidraw/excalidraw/index";
 import React from "react";
 
@@ -26,10 +25,7 @@ export const AppMainMenu: React.FC<{
       <MainMenu.DefaultItems.Export />
       <MainMenu.DefaultItems.SaveAsImage />
       {props.onLoadDemo && (
-        <MainMenu.Item
-          icon={<span>🎨</span>}
-          onSelect={props.onLoadDemo}
-        >
+        <MainMenu.Item icon={<span>🎨</span>} onSelect={props.onLoadDemo}>
           Load Drawo Demo
         </MainMenu.Item>
       )}

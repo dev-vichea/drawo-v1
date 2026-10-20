@@ -4,6 +4,7 @@ import {
   newArrowElement,
 } from "@excalidraw/element";
 import { pointFrom } from "@excalidraw/math";
+
 import type { LocalPoint } from "@excalidraw/math";
 import type { ExcalidrawElement } from "@excalidraw/element/types";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
@@ -37,7 +38,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
   });
   elements.push(subtitle);
 
-  // Card 1: Shapes and sketch
+  // Card 1
   const card1 = newElement({
     type: "rectangle",
     x: cx,
@@ -56,7 +57,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
   const card1Text = newTextElement({
     x: cx + 15,
     y: cy + 120,
-    text: "🎨 Drawing Tools\n\n• Rectangles & diamonds\n• Ellipses & lines\n• Freehand sketch\n• Solid & hatch fills",
+    text: "🎨 Drawing Tools\n\nRectangles and diamonds\nEllipses and lines\nFreehand sketch\nSolid and hatch fills",
     fontSize: 14,
     fontFamily: 1,
     strokeColor: "#1e1e1e",
@@ -64,7 +65,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
   });
   elements.push(card1Text);
 
-  // Card 2: Shortcuts
+  // Card 2
   const card2 = newElement({
     type: "rectangle",
     x: cx + 260,
@@ -83,7 +84,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
   const card2Text = newTextElement({
     x: cx + 275,
     y: cy + 120,
-    text: "💡 Quick Shortcuts\n\n• V: Selection\n• R: Rectangle\n• O: Ellipse\n• P: Freehand pencil\n• E: Eraser",
+    text: "💡 Quick Shortcuts\n\nV  Selection\nR  Rectangle\nO  Ellipse\nP  Freehand pencil\nE  Eraser",
     fontSize: 14,
     fontFamily: 1,
     strokeColor: "#1e1e1e",
@@ -91,7 +92,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
   });
   elements.push(card2Text);
 
-  // Card 3: Smart Connectors
+  // Card 3
   const card3 = newElement({
     type: "rectangle",
     x: cx + 520,
@@ -110,7 +111,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
   const card3Text = newTextElement({
     x: cx + 535,
     y: cy + 120,
-    text: "⚡ Smart Connectors\n\n• Straight arrows\n• Curved & elbow paths\n• Auto-binding to shapes\n• Stays connected!",
+    text: "⚡ Smart Connectors\n\nStraight arrows\nCurved and elbow paths\nAuto-binding to shapes\nStays connected!",
     fontSize: 14,
     fontFamily: 1,
     strokeColor: "#1e1e1e",
@@ -125,10 +126,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     y: cy + 180,
     width: 40,
     height: 0,
-    points: [
-      pointFrom<LocalPoint>(0, 0),
-      pointFrom<LocalPoint>(40, 0),
-    ],
+    points: [pointFrom<LocalPoint>(0, 0), pointFrom<LocalPoint>(40, 0)],
     endArrowhead: "arrow",
     strokeColor: "#868e96",
     strokeWidth: 2,
@@ -143,10 +141,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     y: cy + 180,
     width: 40,
     height: 0,
-    points: [
-      pointFrom<LocalPoint>(0, 0),
-      pointFrom<LocalPoint>(40, 0),
-    ],
+    points: [pointFrom<LocalPoint>(0, 0), pointFrom<LocalPoint>(40, 0)],
     endArrowhead: "arrow",
     strokeColor: "#868e96",
     strokeWidth: 2,
