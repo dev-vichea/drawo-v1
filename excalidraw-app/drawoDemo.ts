@@ -1,0 +1,186 @@
+import {
+  newElement,
+  newTextElement,
+  newArrowElement,
+} from "@excalidraw/element";
+import { pointFrom } from "@excalidraw/math";
+import type { LocalPoint } from "@excalidraw/math";
+import type { ExcalidrawElement } from "@excalidraw/element/types";
+import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+
+export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
+  const elements: ExcalidrawElement[] = [];
+
+  const cx = 100;
+  const cy = 100;
+
+  // Title text
+  const title = newTextElement({
+    x: cx + 180,
+    y: cy,
+    text: "✏️ Welcome to Drawo",
+    fontSize: 28,
+    fontFamily: 1,
+    textAlign: "left",
+  });
+  elements.push(title);
+
+  // Subtitle text
+  const subtitle = newTextElement({
+    x: cx + 180,
+    y: cy + 45,
+    text: "Hand-drawn whiteboard, free, local and private",
+    fontSize: 16,
+    fontFamily: 1,
+    strokeColor: "#868e96",
+    textAlign: "left",
+  });
+  elements.push(subtitle);
+
+  // Card 1: Shapes and sketch
+  const card1 = newElement({
+    type: "rectangle",
+    x: cx,
+    y: cy + 100,
+    width: 220,
+    height: 160,
+    strokeColor: "#364fc7",
+    backgroundColor: "#edf2ff",
+    fillStyle: "solid",
+    roundness: { type: 3 },
+    roughness: 1,
+    strokeWidth: 2,
+  });
+  elements.push(card1);
+
+  const card1Text = newTextElement({
+    x: cx + 15,
+    y: cy + 120,
+    text: "🎨 Drawing Tools\n\n• Rectangles & diamonds\n• Ellipses & lines\n• Freehand sketch\n• Solid & hatch fills",
+    fontSize: 14,
+    fontFamily: 1,
+    strokeColor: "#1e1e1e",
+    textAlign: "left",
+  });
+  elements.push(card1Text);
+
+  // Card 2: Shortcuts
+  const card2 = newElement({
+    type: "rectangle",
+    x: cx + 260,
+    y: cy + 100,
+    width: 220,
+    height: 160,
+    strokeColor: "#e67700",
+    backgroundColor: "#fff3bf",
+    fillStyle: "solid",
+    roundness: { type: 3 },
+    roughness: 1,
+    strokeWidth: 2,
+  });
+  elements.push(card2);
+
+  const card2Text = newTextElement({
+    x: cx + 275,
+    y: cy + 120,
+    text: "💡 Quick Shortcuts\n\n• V: Selection\n• R: Rectangle\n• O: Ellipse\n• P: Freehand pencil\n• E: Eraser",
+    fontSize: 14,
+    fontFamily: 1,
+    strokeColor: "#1e1e1e",
+    textAlign: "left",
+  });
+  elements.push(card2Text);
+
+  // Card 3: Smart Connectors
+  const card3 = newElement({
+    type: "rectangle",
+    x: cx + 520,
+    y: cy + 100,
+    width: 220,
+    height: 160,
+    strokeColor: "#099268",
+    backgroundColor: "#ebfbee",
+    fillStyle: "solid",
+    roundness: { type: 3 },
+    roughness: 1,
+    strokeWidth: 2,
+  });
+  elements.push(card3);
+
+  const card3Text = newTextElement({
+    x: cx + 535,
+    y: cy + 120,
+    text: "⚡ Smart Connectors\n\n• Straight arrows\n• Curved & elbow paths\n• Auto-binding to shapes\n• Stays connected!",
+    fontSize: 14,
+    fontFamily: 1,
+    strokeColor: "#1e1e1e",
+    textAlign: "left",
+  });
+  elements.push(card3Text);
+
+  // Connecting Arrow 1
+  const arrow1 = newArrowElement({
+    type: "arrow",
+    x: cx + 220,
+    y: cy + 180,
+    width: 40,
+    height: 0,
+    points: [
+      pointFrom<LocalPoint>(0, 0),
+      pointFrom<LocalPoint>(40, 0),
+    ],
+    endArrowhead: "arrow",
+    strokeColor: "#868e96",
+    strokeWidth: 2,
+    roughness: 1,
+  });
+  elements.push(arrow1);
+
+  // Connecting Arrow 2
+  const arrow2 = newArrowElement({
+    type: "arrow",
+    x: cx + 480,
+    y: cy + 180,
+    width: 40,
+    height: 0,
+    points: [
+      pointFrom<LocalPoint>(0, 0),
+      pointFrom<LocalPoint>(40, 0),
+    ],
+    endArrowhead: "arrow",
+    strokeColor: "#868e96",
+    strokeWidth: 2,
+    roughness: 1,
+  });
+  elements.push(arrow2);
+
+  // Diamond CTA at the bottom
+  const diamond = newElement({
+    type: "diamond",
+    x: cx + 270,
+    y: cy + 300,
+    width: 200,
+    height: 120,
+    strokeColor: "#d6336c",
+    backgroundColor: "#fff0f6",
+    fillStyle: "solid",
+    roughness: 1,
+    strokeWidth: 2,
+  });
+  elements.push(diamond);
+
+  const diamondText = newTextElement({
+    x: cx + 320,
+    y: cy + 340,
+    text: "✨ 100% Local\nDrag to edit!",
+    fontSize: 14,
+    fontFamily: 1,
+    strokeColor: "#d6336c",
+    textAlign: "center",
+  });
+  elements.push(diamondText);
+
+  api.updateScene({
+    elements,
+  });
+}
