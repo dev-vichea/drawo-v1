@@ -1,0 +1,395 @@
+@font-face {
+  font-family: 'Excalifont';
+  src: url('./fonts/Excalifont-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg-color: #ffffff;
+  --surface-color: #ffffff;
+  --border-color: #e0e0e0;
+  --primary-color: #6965db;
+  --primary-hover: #5651c8;
+  --primary-light: #ececfb;
+  --text-color: #2b2b2b;
+  --text-muted: #757575;
+  --danger-color: #e03131;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Excalifont', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Canvas Layers */
+.canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#staticCanvas {
+  z-index: 1;
+}
+
+#interactiveCanvas {
+  z-index: 2;
+  cursor: default;
+}
+
+/* Header & Top Bar */
+.top-header {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+  background: var(--surface-color);
+  padding: 6px 14px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.brand-logo {
+  width: 24px;
+  height: 24px;
+  fill: var(--primary-color);
+}
+
+.brand-title {
+  font-size: 17px;
+  font-weight: bold;
+  letter-spacing: -0.2px;
+}
+
+.brand-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Toolbar */
+.toolbar-container {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-color);
+  padding: 4px 6px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
+  pointer-events: auto;
+  z-index: 10;
+}
+
+.tool-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-color);
+  transition: all 0.15s ease;
+}
+
+.tool-button:hover {
+  background: #f0f0f5;
+}
+
+.tool-button.active {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.tool-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.tool-key {
+  position: absolute;
+  bottom: 2px;
+  right: 3px;
+  font-size: 9px;
+  font-family: monospace;
+  opacity: 0.6;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border-color);
+  margin: 0 4px;
+}
+
+/* Top Right Actions */
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.btn-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+
+.btn-action:hover {
+  background: #f8f8fb;
+  border-color: #c9c8e8;
+}
+
+.btn-action.btn-demo {
+  background: #2b8a3e;
+  border-color: #2b8a3e;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.btn-action.btn-demo:hover {
+  background: #237032;
+}
+
+/* Properties Floating Panel */
+.properties-panel {
+  position: absolute;
+  top: 68px;
+  left: 16px;
+  background: var(--surface-color);
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 190px;
+}
+
+.prop-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prop-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.color-palette {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.1s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.color-swatch.active {
+  border-color: var(--primary-color);
+}
+
+.button-group {
+  display: flex;
+  gap: 4px;
+  background: #f1f1f5;
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.group-btn {
+  flex: 1;
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.1s;
+}
+
+.group-btn.active {
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  font-weight: bold;
+}
+
+/* Bottom Controls */
+.bottom-left-controls {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-color);
+  padding: 4px 6px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
+  z-index: 10;
+}
+
+.zoom-btn, .undo-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-color);
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.zoom-btn:hover, .undo-btn:hover {
+  background: #f0f0f5;
+}
+
+.zoom-display {
+  font-size: 13px;
+  min-width: 44px;
+  text-align: center;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.zoom-display:hover {
+  background: #f0f0f5;
+  border-radius: 4px;
+}
+
+/* Canvas Hint */
+.bottom-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text-muted);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.bottom-hint kbd {
+  background: #f1f1f5;
+  border: 1px solid #dcdce2;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 11px;
+  font-family: monospace;
+}
+
+/* Inline Text Editor (Matches Excalidraw's seamless borderless look) */
+#textEditor {
+  position: absolute;
+  display: none;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  font-family: 'Excalifont', cursive, sans-serif;
+  color: #1e1e1e;
+  resize: none;
+  overflow: hidden;
+  white-space: pre;
+  z-index: 100;
+  line-height: 1.35;
+  box-shadow: none;
+  box-sizing: content-box;
+}

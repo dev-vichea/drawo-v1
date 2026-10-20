@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>drawo — Whiteboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="rough.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <svg class="brand-logo" viewBox="0 0 24 24">
+          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+        </svg>
+        <span class="brand-title">drawo</span>
+        <span class="brand-badge">Hand-Drawn Whiteboard</span>
+      </div>
+
+      <div class="top-actions">
+        <button class="btn-action btn-demo" id="btnLoadDemo" title="Load the Security Architecture & Workflow Diagram from screenshot">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          Load Demo Diagram
+        </button>
+        <button class="btn-action" id="btnExportPng" title="Export canvas to PNG">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Export PNG
+        </button>
+        <button class="btn-action" id="btnClear" title="Clear canvas">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Clear
+        </button>
+      </div>
+    </header>
+
+    <!-- Toolbar -->
+    <nav class="toolbar-container" id="toolbar">
+      <button class="tool-button" data-tool="hand" title="Hand (Panning tool) — H">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v7M10 10.5V6a2 2 0 0 0-4 0v8M10 18a6 6 0 0 0 10-4.5V11a2 2 0 0 0-4 0"></path>
+        </svg>
+        <span class="tool-key">H</span>
+      </button>
+
+      <button class="tool-button active" data-tool="selection" title="Selection — V">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 3l7 18 3-7 7-3L3 3z"></path>
+          <path d="M13 13l6 6"></path>
+        </svg>
+        <span class="tool-key">V</span>
+      </button>
+
+      <div class="toolbar-divider"></div>
+
+      <button class="tool-button" data-tool="rectangle" title="Rectangle — R">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+        </svg>
+        <span class="tool-key">R</span>
+      </button>
+
+      <button class="tool-button" data-tool="diamond" title="Diamond — D">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 22 12 12 22 2 12"></polygon>
+        </svg>
+        <span class="tool-key">D</span>
+      </button>
+
+      <button class="tool-button" data-tool="ellipse" title="Ellipse — O">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+        </svg>
+        <span class="tool-key">O</span>
+      </button>
+
+      <button class="tool-button" data-tool="arrow" title="Arrow (Snaps and binds to shapes!) — A">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+        <span class="tool-key">A</span>
+      </button>
+
+      <button class="tool-button" data-tool="line" title="Line — L">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="4" y1="20" x2="20" y2="4"></line>
+        </svg>
+        <span class="tool-key">L</span>
+      </button>
+
+      <button class="tool-button" data-tool="text" title="Text — T">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="4 7 4 4 20 4 20 7"></polyline>
+          <line x1="9" y1="20" x2="15" y2="20"></line>
+          <line x1="12" y1="4" x2="12" y2="20"></line>
+        </svg>
+        <span class="tool-key">T</span>
+      </button>
+
+      <div class="toolbar-divider"></div>
+
+      <button class="tool-button" data-tool="eraser" title="Eraser — E">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m18 13.3-6.3-6.3a2 2 0 0 0-2.8 0L2.3 13.6a2 2 0 0 0 0 2.8l3.3 3.3a2 2 0 0 0 2.8 0L20 8.1"></path>
+          <path d="M19 20H8.5"></path>
+        </svg>
+        <span class="tool-key">E</span>
+      </button>
+    </nav>
+
+    <!-- Properties Panel -->
+    <aside class="properties-panel" id="propertiesPanel">
+      <div class="prop-group">
+        <span class="prop-label">Stroke</span>
+        <div class="color-palette" id="strokeColorPalette">
+          <div class="color-swatch active" style="background: #1e1e1e;" data-color="#1e1e1e"></div>
+          <div class="color-swatch" style="background: #e03131;" data-color="#e03131"></div>
+          <div class="color-swatch" style="background: #2f9e44;" data-color="#2f9e44"></div>
+          <div class="color-swatch" style="background: #1971c2;" data-color="#1971c2"></div>
+          <div class="color-swatch" style="background: #f08c00;" data-color="#f08c00"></div>
+          <div class="color-swatch" style="background: #6741d9;" data-color="#6741d9"></div>
+        </div>
+      </div>
+
+      <div class="prop-group">
+        <span class="prop-label">Background</span>
+        <div class="color-palette" id="bgColorPalette">
+          <div class="color-swatch active" style="background: transparent; border: 1px dashed #aaa;" data-color="transparent" title="Transparent"></div>
+          <div class="color-swatch" style="background: #ffc9c9;" data-color="#ffc9c9"></div>
+          <div class="color-swatch" style="background: #b2f2bb;" data-color="#b2f2bb"></div>
+          <div class="color-swatch" style="background: #a5d8ff;" data-color="#a5d8ff"></div>
+          <div class="color-swatch" style="background: #ffec99;" data-color="#ffec99"></div>
+          <div class="color-swatch" style="background: #eebefa;" data-color="#eebefa"></div>
+        </div>
+      </div>
+
+      <div class="prop-group">
+        <span class="prop-label">Stroke Width</span>
+        <div class="button-group" id="strokeWidthGroup">
+          <button class="group-btn active" data-val="1">Thin</button>
+          <button class="group-btn" data-val="2">Medium</button>
+          <button class="group-btn" data-val="4">Bold</button>
+        </div>
+      </div>
+
+      <div class="prop-group">
+        <span class="prop-label">Sloppiness (Roughness)</span>
+        <div class="button-group" id="roughnessGroup">
+          <button class="group-btn" data-val="0">Architect</button>
+          <button class="group-btn active" data-val="1">Artist</button>
+          <button class="group-btn" data-val="2.5">Cartoonist</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Canvas layers -->
+    <main class="canvas-container" id="canvasContainer">
+      <canvas id="staticCanvas"></canvas>
+      <canvas id="interactiveCanvas"></canvas>
+      <textarea id="textEditor" spellcheck="false"></textarea>
+    </main>
+
+    <!-- Bottom Left Navigation Controls -->
+    <div class="bottom-left-controls">
+      <button class="zoom-btn" id="btnZoomOut" title="Zoom Out (Ctrl + -)">−</button>
+      <div class="zoom-display" id="zoomDisplay" title="Click to reset zoom">100%</div>
+      <button class="zoom-btn" id="btnZoomIn" title="Zoom In (Ctrl + +)">+</button>
+      <div class="toolbar-divider"></div>
+      <button class="undo-btn" id="btnUndo" title="Undo (Ctrl + Z)">↩</button>
+      <button class="undo-btn" id="btnRedo" title="Redo (Ctrl + Y)">↪</button>
+    </div>
+
+    <!-- Bottom Center Hint -->
+    <div class="bottom-hint">
+      Text tool (<kbd>T</kbd>): click anywhere to write • Click outside to finish • Hold <kbd>Space</kbd> to pan
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
