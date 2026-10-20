@@ -1263,21 +1263,10 @@
 
   // --- Multi-point Arrow / Line Lifecycle ---
 
-  function showToolbarHint() {
-    const el = document.getElementById('toolbarHint');
-    if (el) el.classList.add('visible');
-  }
-
-  function hideToolbarHint() {
-    const el = document.getElementById('toolbarHint');
-    if (el) el.classList.remove('visible');
-  }
-
   function finishMultiPointDrawing() {
     if (!state.multiPointElement) return;
     const el = state.multiPointElement;
     state.multiPointElement = null;
-    hideToolbarHint();
 
     // Pop trailing preview point
     if (el.points.length > 2) {
@@ -1318,7 +1307,7 @@
     state.bindingCandidate = null;
     renderAll();
     updatePropertiesPanel();
-    updateBottomHint();
+    updateToolbarHint();
   }
 
   function cancelOrFinishMultiPointDrawing() {
@@ -1327,10 +1316,9 @@
       finishMultiPointDrawing();
     } else {
       state.multiPointElement = null;
-      hideToolbarHint();
       state.bindingCandidate = null;
       renderAll();
-      updateBottomHint();
+      updateToolbarHint();
     }
   }
 
@@ -1841,8 +1829,7 @@
           state.currentElement = null;
           state.dragMode = null;
           state.isDragging = false;
-          showToolbarHint();
-          updateBottomHint();
+          updateToolbarHint();
           renderInteractive();
           return;
         } else {
@@ -2328,11 +2315,11 @@
     });
     interactiveCanvas.style.cursor = toolName === 'hand' ? 'grab' : (toolName === 'selection' ? 'default' : 'crosshair');
     updatePropertiesPanel();
-    updateBottomHint();
+    updateToolbarHint();
   }
 
-  function updateBottomHint() {
-    const hintEl = document.querySelector('.bottom-hint');
+  function updateToolbarHint() {
+    const hintEl = document.getElementById('toolbarHint');
     if (!hintEl) return;
     if (state.multiPointElement) {
       hintEl.innerHTML = 'Click on last point or press <kbd>Esc</kbd> or <kbd>Enter</kbd> to finish';
@@ -2340,23 +2327,31 @@
     }
     const tool = state.activeTool;
     if (tool === 'arrow') {
-      hintEl.innerHTML = 'Click to draw multi-point arrow, or drag for single arrow. Press <kbd>A</kbd> again to switch arrow type.';
+      hintEl.innerHTML = 'Click to draw multi-point arrow, or drag for single arrow • Press <kbd>A</kbd> to switch arrow type';
     } else if (tool === 'line') {
-      hintEl.innerHTML = 'Click to draw multi-point line, or drag for single line.';
+      hintEl.innerHTML = 'Click to draw multi-point line, or drag for single line';
     } else if (tool === 'stickynote') {
       hintEl.innerHTML = 'Click to place a note, or drag to size it';
     } else if (tool === 'text') {
-      hintEl.innerHTML = 'Text tool (<kbd>T</kbd>): click anywhere to write • Click outside to finish • Hold <kbd>Space</kbd> to pan';
+      hintEl.innerHTML = 'Text tool (<kbd>T</kbd>): click anywhere to write • Click outside to finish';
     } else if (tool === 'selection') {
       hintEl.innerHTML = 'Selection tool (<kbd>V</kbd>): click to select • Drag corner to resize • Drag top dot to rotate';
     } else if (tool === 'hand') {
       hintEl.innerHTML = 'Hand tool (<kbd>H</kbd>): drag canvas to pan • Mouse wheel to zoom';
     } else if (tool === 'eraser') {
       hintEl.innerHTML = 'Eraser tool (<kbd>E</kbd>): click or drag over elements to erase';
+    } else if (tool === 'rectangle') {
+      hintEl.innerHTML = 'Click & drag to draw rectangle • Hold <kbd>Shift</kbd> for 1:1 ratio';
+    } else if (tool === 'diamond') {
+      hintEl.innerHTML = 'Click & drag to draw diamond • Hold <kbd>Shift</kbd> for 1:1 ratio';
+    } else if (tool === 'ellipse') {
+      hintEl.innerHTML = 'Click & drag to draw ellipse • Hold <kbd>Shift</kbd> for circle';
     } else {
       hintEl.innerHTML = 'Click & drag to draw shape • Hold <kbd>Shift</kbd> for 1:1 ratio • Hold <kbd>Space</kbd> to pan';
     }
   }
+
+  const updateBottomHint = updateToolbarHint;
 
   const ARROWHEAD_ICONS = {
     start: {
