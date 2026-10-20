@@ -1142,7 +1142,7 @@
     const fontSize = (containerEl.fontSize || 16) * state.zoom;
     const lineHeight = fontSize * 1.35;
     const lines = (containerEl.text || 'A').split('\n');
-    const estimatedH = Math.max(lines.length * lineHeight, lineHeight + 8);
+    const estimatedH = Math.max(lines.length * lineHeight + 14, 38);
     const editorW = Math.max(screenW - 20, 120);
 
     textEditor.style.display = 'block';
@@ -1154,11 +1154,15 @@
     textEditor.style.fontSize = fontSize + 'px';
     textEditor.style.color = containerEl.strokeColor || '#1e1e1e';
     textEditor.value = containerEl.text || '';
+    textEditor.scrollTop = 0;
+    textEditor.scrollLeft = 0;
 
     renderAll();
 
     setTimeout(() => {
       textEditor.focus();
+      if (containerEl.text) textEditor.select();
+      textEditor.scrollTop = 0;
     }, 10);
   }
 
@@ -1179,22 +1183,30 @@
     };
 
     const screenPos = sceneToScreen(x, y);
+    const fontSize = (existingEl?.fontSize || 18) * state.zoom;
+    const lineHeight = fontSize * 1.35;
+    const lines = (existingEl?.text || 'A').split('\n');
+    const height = Math.max(lines.length * lineHeight + 14, 38);
+    const width = existingEl ? Math.max(existingEl.width * state.zoom + 24, 160) : 240;
+
     textEditor.style.display = 'block';
     textEditor.style.left = screenPos.x + 'px';
-    textEditor.style.top = screenPos.y + 'px';
+    textEditor.style.top = screenPos.y - 2 + 'px';
+    textEditor.style.width = width + 'px';
+    textEditor.style.height = height + 'px';
     textEditor.style.textAlign = 'left';
-    textEditor.style.fontSize = 18 * state.zoom + 'px';
+    textEditor.style.fontSize = fontSize + 'px';
     textEditor.style.color = existingEl ? (existingEl.strokeColor || state.strokeColor) : state.strokeColor;
     textEditor.value = existingEl ? existingEl.text : '';
-
-    textEditor.style.width = '240px';
-    textEditor.style.height = '36px';
+    textEditor.scrollTop = 0;
+    textEditor.scrollLeft = 0;
 
     renderAll();
 
     setTimeout(() => {
       textEditor.focus();
       if (existingEl) textEditor.select();
+      textEditor.scrollTop = 0;
     }, 10);
   }
 
@@ -1215,15 +1227,16 @@
       const cy = containerEl.y + containerEl.height / 2;
       const screenCenter = sceneToScreen(containerEl.x + containerEl.width / 2, cy);
       textEditor.style.height = 'auto';
-      const newH = Math.max(textEditor.scrollHeight, 28);
+      const newH = Math.max(textEditor.scrollHeight + 10, 38);
       textEditor.style.height = newH + 'px';
       textEditor.style.top = screenCenter.y - newH / 2 + 'px';
     } else {
       textEditor.style.width = 'auto';
       textEditor.style.width = Math.max(textEditor.scrollWidth + 24, 160) + 'px';
       textEditor.style.height = 'auto';
-      textEditor.style.height = Math.max(textEditor.scrollHeight, 30) + 'px';
+      textEditor.style.height = Math.max(textEditor.scrollHeight + 10, 38) + 'px';
     }
+    textEditor.scrollTop = 0;
   });
 
   function eraseAtPoint(pt) {

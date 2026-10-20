@@ -381,7 +381,7 @@ canvas {
   background: transparent;
   border: none;
   outline: none;
-  padding: 0;
+  padding: 2px 4px;
   margin: 0;
   font-family: 'Excalifont', cursive, sans-serif;
   color: #1e1e1e;
@@ -391,5 +391,5 @@ canvas {
   z-index: 100;
   line-height: 1.35;
   box-shadow: none;
-  box-sizing: content-box;
+  box-sizing: border-box;
 }
