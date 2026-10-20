@@ -18,7 +18,6 @@
 
   .app-sidebar-promo-image {
     margin: 1rem 0;
-
     height: 295px;
     background-size: contain;
     background-position: center;
@@ -26,23 +25,13 @@
     background-size: calc(
       var(--right-sidebar-width, 100%) - var(--space-factor) * 2
     );
-
     background-image: radial-gradient(
         circle,
         transparent 0%,
         var(--sidebar-bg-color) 100%
       ),
       var(--image-source);
-
     display: flex;
-  }
-
-  .app-sidebar-promo-text {
-    padding: 0 2rem;
-  }
-
-  .link-button {
-    margin: 0 auto;
   }
 
   .app-sidebar-promo-text {
@@ -52,41 +41,283 @@
     line-height: 1.4;
   }
 
-  .app-sidebar-promo-illustration {
-    position: relative;
-    min-height: 7rem;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding-top: 0.125rem;
+  .drawo-workspace-top-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--default-border-color);
+    background-color: var(--island-bg-color);
+    color: var(--text-primary-color);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-island);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
 
-    .app-sidebar-promo-heart {
-      width: 46px;
-      transform: translateX(-14px);
-      height: auto;
+    &:hover {
+      background-color: var(--button-hover-bg);
+      border-color: var(--color-primary);
     }
 
-    .app-sidebar-promo-trial-note {
-      position: absolute;
-      top: 2.75rem;
-      left: 50%;
-      transform: translateX(-56%) rotate(-7deg);
-      font-size: 1rem;
-      line-height: 1.15;
-      color: var(--color-primary);
+    .drawo-workspace-top-pill__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--color-primary);
+      flex-shrink: 0;
+    }
 
+    .drawo-workspace-top-pill__title {
+      max-width: 170px;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .app-sidebar-promo-trial-arrow {
-      position: absolute;
-      top: 3.35rem;
-      left: 55%;
-      width: 4.5rem;
-      height: 3rem;
-      transform: translateX(1.75rem) rotate(10deg);
-      color: var(--color-primary);
-      overflow: visible;
+    .drawo-workspace-top-pill__count {
+      font-size: 0.7rem;
+      padding: 0.12rem 0.45rem;
+      border-radius: 0.35rem;
+      background-color: var(--button-hover-bg);
+      color: var(--color-gray-60, #868e96);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+  }
+
+  .drawo-workspace-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 0.85rem;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    color: var(--text-primary-color);
+  }
+
+  .drawo-workspace-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+
+    .drawo-workspace-header__title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .drawo-workspace-btn-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 0.45rem;
+      border: none;
+      background-color: var(--color-primary);
+      color: #ffffff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+
+  .drawo-workspace-search {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.45rem;
+    border: 1px solid var(--default-border-color);
+    background-color: var(--island-bg-color);
+    color: var(--text-primary-color);
+    font-size: 0.8125rem;
+    box-sizing: border-box;
+    outline: none;
+
+    &:focus {
+      border-color: var(--color-primary);
+    }
+  }
+
+  .drawo-workspace-collections {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+
+    .drawo-collection-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.28rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid var(--default-border-color);
+      background-color: var(--island-bg-color);
+      color: var(--text-primary-color);
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+
+      &.is-active {
+        background-color: var(--color-primary);
+        border-color: var(--color-primary);
+        color: #ffffff;
+      }
+
+      .drawo-collection-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+      }
+
+      .drawo-collection-del {
+        margin-left: 0.15rem;
+        opacity: 0.75;
+        font-size: 0.7rem;
+        &:hover {
+          opacity: 1;
+        }
+      }
+    }
+  }
+
+  .drawo-workspace-new-col-row {
+    display: flex;
+    gap: 0.35rem;
+
+    input {
+      flex: 1;
+      padding: 0.38rem 0.55rem;
+      border-radius: 0.4rem;
+      border: 1px solid var(--default-border-color);
+      background-color: var(--island-bg-color);
+      color: var(--text-primary-color);
+      font-size: 0.78rem;
+    }
+
+    button {
+      padding: 0.38rem 0.65rem;
+      border-radius: 0.4rem;
+      border: 1px solid var(--default-border-color);
+      background-color: var(--button-hover-bg);
+      color: var(--text-primary-color);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  }
+
+  .drawo-workspace-boards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    flex: 1;
+  }
+
+  .drawo-board-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.55rem;
+    border: 1px solid var(--default-border-color);
+    background-color: var(--island-bg-color);
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      border-color: var(--color-primary);
+    }
+
+    &.is-active {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 1px var(--color-primary);
+    }
+
+    .drawo-board-card__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+    }
+
+    .drawo-board-card__title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .drawo-board-card__active-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.12rem 0.4rem;
+      border-radius: 0.3rem;
+      background-color: var(--color-primary);
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .drawo-board-card__meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--color-gray-60, #868e96);
+      gap: 0.4rem;
+    }
+
+    .drawo-board-card__actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem;
+      padding-top: 0.3rem;
+      border-top: 1px solid var(--default-border-color);
+
+      select {
+        font-size: 0.72rem;
+        padding: 0.18rem 0.35rem;
+        border-radius: 0.3rem;
+        border: 1px solid var(--default-border-color);
+        background-color: var(--island-bg-color);
+        color: var(--text-primary-color);
+        max-width: 120px;
+      }
+
+      .drawo-board-card__btns {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+
+        button {
+          padding: 0.2rem 0.4rem;
+          border-radius: 0.3rem;
+          border: 1px solid transparent;
+          background: transparent;
+          color: var(--text-primary-color);
+          font-size: 0.75rem;
+          cursor: pointer;
+
+          &:hover {
+            background-color: var(--button-hover-bg);
+            border-color: var(--default-border-color);
+          }
+        }
+      }
     }
   }
 }

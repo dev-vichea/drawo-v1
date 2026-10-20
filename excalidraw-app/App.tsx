@@ -21,6 +21,7 @@ import { ShareableLinkDialog } from "@excalidraw/excalidraw/components/Shareable
 import Trans from "@excalidraw/excalidraw/components/Trans";
 import {
   APP_NAME,
+  DEFAULT_SIDEBAR,
   EVENT,
   VERSION_TIMEOUT,
   debounce,
@@ -140,7 +141,8 @@ import { ExcalidrawPlusIframeExport } from "./ExcalidrawPlusIframeExport";
 
 import "./index.scss";
 
-import { AppSidebar } from "./components/AppSidebar";
+import { AppSidebar, DrawoWorkspaceTopPill } from "./components/AppSidebar";
+import { DrawoWorkspace } from "./data/DrawoWorkspace";
 
 import type { CollabAPI } from "./collab/Collab";
 
@@ -718,6 +720,7 @@ const ExcalidrawWrapper = () => {
     // not to evaludate the nested expression every time
     if (!LocalData.isSavePaused()) {
       LocalData.save(elements, appState, files, () => {
+        DrawoWorkspace.syncActiveBoardFromCanvas(elements, appState);
         if (excalidrawAPI) {
           let didChange = false;
 
@@ -923,20 +926,23 @@ const ExcalidrawWrapper = () => {
         theme={editorTheme}
         onThemeChange={setAppTheme}
         renderTopRightUI={(isMobile) => {
-          if (isMobile || !collabAPI || isCollabDisabled) {
+          if (isMobile) {
             return null;
           }
 
           return (
             <div className="excalidraw-ui-top-right">
+              <DrawoWorkspaceTopPill excalidrawAPI={excalidrawAPI} />
               {collabError.message && <CollabError collabError={collabError} />}
-              <LiveCollaborationTrigger
-                isCollaborating={isCollaborating}
-                onSelect={() =>
-                  setShareDialogState({ isOpen: true, type: "share" })
-                }
-                editorInterface={editorInterface}
-              />
+              {collabAPI && !isCollabDisabled && (
+                <LiveCollaborationTrigger
+                  isCollaborating={isCollaborating}
+                  onSelect={() =>
+                    setShareDialogState({ isOpen: true, type: "share" })
+                  }
+                  editorInterface={editorInterface}
+                />
+              )}
             </div>
           );
         }}
@@ -957,6 +963,12 @@ const ExcalidrawWrapper = () => {
           isCollabEnabled={!isCollabDisabled}
           theme={appTheme}
           refresh={() => forceRefresh((prev) => !prev)}
+          onOpenWorkspace={() => {
+            excalidrawAPI?.toggleSidebar({
+              name: DEFAULT_SIDEBAR.name,
+              tab: "workspace",
+            });
+          }}
           onLoadDemo={() => {
             if (excalidrawAPI) {
               loadDrawoDemo(excalidrawAPI);
@@ -966,6 +978,12 @@ const ExcalidrawWrapper = () => {
         <AppWelcomeScreen
           onCollabDialogOpen={onCollabDialogOpen}
           isCollabEnabled={!isCollabDisabled}
+          onOpenWorkspace={() => {
+            excalidrawAPI?.toggleSidebar({
+              name: DEFAULT_SIDEBAR.name,
+              tab: "workspace",
+            });
+          }}
           onLoadDemo={() => {
             if (excalidrawAPI) {
               loadDrawoDemo(excalidrawAPI);
@@ -1018,7 +1036,7 @@ const ExcalidrawWrapper = () => {
           }}
         />
 
-        <AppSidebar />
+        <AppSidebar excalidrawAPI={excalidrawAPI} />
 
         {errorMessage && (
           <ErrorDialog onClose={() => setErrorMessage("")}>

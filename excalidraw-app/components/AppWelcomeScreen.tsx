@@ -6,6 +6,7 @@ export const AppWelcomeScreen: React.FC<{
   onCollabDialogOpen: () => any;
   isCollabEnabled: boolean;
   onLoadDemo?: () => void;
+  onOpenWorkspace?: () => void;
 }> = React.memo((props) => {
   const { t } = useI18n();
   const headingContent = "Hand-drawn whiteboard, free, local and private";
@@ -38,6 +39,15 @@ export const AppWelcomeScreen: React.FC<{
         </WelcomeScreen.Center.Heading>
         <WelcomeScreen.Center.Menu>
           <WelcomeScreen.Center.MenuItemLoadScene />
+          {props.onOpenWorkspace && (
+            <WelcomeScreen.Center.MenuItem
+              shortcut={null}
+              icon={<span>📁</span>}
+              onSelect={props.onOpenWorkspace}
+            >
+              Workspace Boards
+            </WelcomeScreen.Center.MenuItem>
+          )}
           {props.onLoadDemo && (
             <WelcomeScreen.Center.MenuItem
               shortcut={null}

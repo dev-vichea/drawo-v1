@@ -17,6 +17,7 @@ export const AppMainMenu: React.FC<{
   theme: Theme | "system";
   refresh: () => void;
   onLoadDemo?: () => void;
+  onOpenWorkspace?: () => void;
 }> = React.memo((props) => {
   return (
     <MainMenu>
@@ -24,6 +25,11 @@ export const AppMainMenu: React.FC<{
       <MainMenu.DefaultItems.SaveToActiveFile />
       <MainMenu.DefaultItems.Export />
       <MainMenu.DefaultItems.SaveAsImage />
+      {props.onOpenWorkspace && (
+        <MainMenu.Item icon={<span>📁</span>} onSelect={props.onOpenWorkspace}>
+          Workspace Boards
+        </MainMenu.Item>
+      )}
       {props.onLoadDemo && (
         <MainMenu.Item icon={<span>🎨</span>} onSelect={props.onLoadDemo}>
           Load Drawo Demo
