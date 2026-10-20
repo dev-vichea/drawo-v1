@@ -43,6 +43,11 @@
     bindingCandidate: null, // { elementId, fixedPoint: [rx, ry], point: [x,y] }
     boxSelectBounds: null,
 
+    // Eraser state
+    elementsToErase: new Set(),
+    eraserTrail: [],
+    pointerInsideCanvas: false,
+
     // Styling defaults
     strokeColor: '#1e1e1e',
     backgroundColor: 'transparent',
@@ -591,9 +596,14 @@
    */
   function drawElement(ctx, rc, el) {
     ctx.save();
+    let alpha = 1.0;
     if (el.opacity !== undefined && el.opacity !== null) {
-      ctx.globalAlpha = Math.max(0, Math.min(1, el.opacity / 100));
+      alpha = Math.max(0, Math.min(1, el.opacity / 100));
     }
+    if (state.elementsToErase && state.elementsToErase.has(el.id)) {
+      alpha = Math.min(alpha, 0.22);
+    }
+    ctx.globalAlpha = alpha;
 
     if (el.angle) {
       const b = getElementBounds(el);
@@ -1038,6 +1048,69 @@
       interactiveCtx.strokeRect(b.x, b.y, b.w, b.h);
       interactiveCtx.restore();
     }
+
+    // 5. Draw Eraser Trail
+    const now = performance.now();
+    if (state.eraserTrail && state.eraserTrail.length > 0) {
+      state.eraserTrail = state.eraserTrail.filter((pt) => now - pt.time < 260);
+
+      if (state.eraserTrail.length >= 2) {
+        interactiveCtx.save();
+        interactiveCtx.lineCap = 'round';
+        interactiveCtx.lineJoin = 'round';
+
+        const trail = state.eraserTrail;
+        const total = trail.length;
+
+        for (let i = 0; i < total - 1; i++) {
+          const p1 = trail[i];
+          const p2 = trail[i + 1];
+          const age = now - p2.time;
+          const timeFade = Math.max(0, 1 - age / 260);
+          const posRatio = (i + 1) / total;
+          const factor = posRatio * timeFade;
+
+          const strokeW = Math.max(2, (3 + factor * 13) / state.zoom);
+          const alpha = Math.min(0.25, 0.04 + factor * 0.18);
+
+          interactiveCtx.beginPath();
+          interactiveCtx.moveTo(p1.x, p1.y);
+          interactiveCtx.lineTo(p2.x, p2.y);
+          interactiveCtx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
+          interactiveCtx.lineWidth = strokeW;
+          interactiveCtx.stroke();
+        }
+
+        interactiveCtx.restore();
+      }
+
+      if (state.eraserTrail.length > 0) {
+        requestAnimationFrame(renderInteractive);
+      }
+    }
+
+    // 6. Draw Eraser Circular Cursor Reticle
+    if (state.activeTool === 'eraser' && state.pointerInsideCanvas) {
+      const pt = state.lastPointerScene;
+      if (pt && pt.x !== undefined && pt.y !== undefined) {
+        interactiveCtx.save();
+
+        interactiveCtx.beginPath();
+        interactiveCtx.arc(pt.x, pt.y, 9 / state.zoom, 0, Math.PI * 2);
+        interactiveCtx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        interactiveCtx.fill();
+        interactiveCtx.lineWidth = 1.4 / state.zoom;
+        interactiveCtx.strokeStyle = 'rgba(30, 30, 30, 0.65)';
+        interactiveCtx.stroke();
+
+        interactiveCtx.beginPath();
+        interactiveCtx.arc(pt.x, pt.y, 1.4 / state.zoom, 0, Math.PI * 2);
+        interactiveCtx.fillStyle = 'rgba(30, 30, 30, 0.75)';
+        interactiveCtx.fill();
+
+        interactiveCtx.restore();
+      }
+    }
   }
 
   function getElementBounds(el) {
@@ -1194,7 +1267,7 @@
     return null;
   }
 
-  function hitTestElement(el, pt) {
+  function hitTestElement(el, pt, padding = 4) {
     let testPt = pt;
     if (el.angle && (el.type === 'rectangle' || el.type === 'stickynote' || el.type === 'diamond' || el.type === 'ellipse' || el.type === 'text')) {
       const cx = el.x + el.width / 2;
@@ -1214,8 +1287,9 @@
       const maxX = Math.max(el.x, el.x + el.width);
       const minY = Math.min(el.y, el.y + el.height);
       const maxY = Math.max(el.y, el.y + el.height);
-      return testPt.x >= minX - 4 && testPt.x <= maxX + 4 && testPt.y >= minY - 4 && testPt.y <= maxY + 4;
+      return testPt.x >= minX - padding && testPt.x <= maxX + padding && testPt.y >= minY - padding && testPt.y <= maxY + padding;
     } else if (el.type === 'arrow' || el.type === 'line') {
+      const threshold = (12 / state.zoom) + padding;
       const pts = el.points.map((p) => ({ x: el.x + p[0], y: el.y + p[1] }));
       if (el.arrowType === 'curved' && pts.length === 2) {
         const p1 = pts[0];
@@ -1231,13 +1305,13 @@
         for (let t = 0; t <= 1; t += 0.05) {
           const qx = (1 - t) * (1 - t) * p1.x + 2 * (1 - t) * t * cx + t * t * p2.x;
           const qy = (1 - t) * (1 - t) * p1.y + 2 * (1 - t) * t * cy + t * t * p2.y;
-          if (distance(pt.x, pt.y, qx, qy) <= 12 / state.zoom) return true;
+          if (distance(pt.x, pt.y, qx, qy) <= threshold) return true;
         }
         return false;
       }
       for (let i = 0; i < pts.length - 1; i++) {
         const d = distToSegment(pt, pts[i], pts[i + 1]);
-        if (d <= 12 / state.zoom) return true;
+        if (d <= threshold) return true;
       }
       return false;
     }
@@ -1259,6 +1333,58 @@
       }
     }
     return null;
+  }
+
+  function checkEraserCollision(p1, p2, isRevert) {
+    const dist = distance(p1.x, p1.y, p2.x, p2.y);
+    const stepSize = Math.max(4, 8 / state.zoom);
+    const steps = Math.max(1, Math.ceil(dist / stepSize));
+    const padding = 9 / state.zoom;
+    let changed = false;
+
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps;
+      const pt = {
+        x: p1.x + (p2.x - p1.x) * t,
+        y: p1.y + (p2.y - p1.y) * t,
+      };
+
+      for (let i = state.elements.length - 1; i >= 0; i--) {
+        const el = state.elements[i];
+        if (hitTestElement(el, pt, padding)) {
+          if (isRevert) {
+            if (state.elementsToErase.has(el.id)) {
+              state.elementsToErase.delete(el.id);
+              changed = true;
+            }
+          } else {
+            if (!state.elementsToErase.has(el.id)) {
+              state.elementsToErase.add(el.id);
+              changed = true;
+            }
+          }
+        }
+      }
+    }
+    return changed;
+  }
+
+  function commitEraser() {
+    if (state.elementsToErase.size === 0) return;
+    const toDelete = new Set(state.elementsToErase);
+    for (const el of state.elements) {
+      if (el.type === 'arrow') {
+        if (el.startBinding && toDelete.has(el.startBinding.elementId)) el.startBinding = null;
+        if (el.endBinding && toDelete.has(el.endBinding.elementId)) el.endBinding = null;
+      }
+    }
+    state.elements = state.elements.filter((e) => !toDelete.has(e.id));
+    for (const id of toDelete) {
+      state.selectedIds.delete(id);
+    }
+    state.elementsToErase.clear();
+    saveHistory();
+    renderAll();
   }
 
   // --- Multi-point Arrow / Line Lifecycle ---
@@ -1377,7 +1503,11 @@
     // Tool: Eraser
     if (state.activeTool === 'eraser') {
       state.dragMode = 'erase';
-      eraseAtPoint(scenePt);
+      state.elementsToErase.clear();
+      state.eraserTrail = [{ x: scenePt.x, y: scenePt.y, time: performance.now() }];
+      const changed = checkEraserCollision(scenePt, scenePt, e.altKey);
+      if (changed) renderAll();
+      else renderInteractive();
       return;
     }
 
@@ -1661,6 +1791,13 @@
     }
 
     if (!state.isDragging) {
+      if (state.activeTool === 'eraser') {
+        interactiveCanvas.style.cursor = 'none';
+        state.lastPointerScene = { x: scenePt.x, y: scenePt.y };
+        state.lastPointerScreen = { x: e.clientX, y: e.clientY };
+        renderInteractive();
+        return;
+      }
       if (state.activeTool === 'selection') {
         const handleHit = hitTestLinearHandles(scenePt);
         if (handleHit) {
@@ -1686,7 +1823,12 @@
 
     // Erase Mode
     if (state.dragMode === 'erase') {
-      eraseAtPoint(scenePt);
+      state.eraserTrail.push({ x: scenePt.x, y: scenePt.y, time: performance.now() });
+      const changed = checkEraserCollision(state.lastPointerScene, scenePt, e.altKey);
+      state.lastPointerScene = { x: scenePt.x, y: scenePt.y };
+      state.lastPointerScreen = { x: e.clientX, y: e.clientY };
+      if (changed) renderAll();
+      else renderInteractive();
       return;
     }
 
@@ -1784,6 +1926,13 @@
     state.isDragging = false;
     const scenePt = screenToScene(e.clientX, e.clientY);
 
+    if (state.dragMode === 'erase') {
+      state.dragMode = null;
+      commitEraser();
+      renderInteractive();
+      return;
+    }
+
     if (state.dragMode === 'rotate' || state.dragMode === 'resize') {
       saveHistory();
       state.dragMode = null;
@@ -1806,7 +1955,7 @@
 
     if (state.dragMode === 'pan') {
       state.dragMode = null;
-      interactiveCanvas.style.cursor = state.activeTool === 'hand' ? 'grab' : 'default';
+      interactiveCanvas.style.cursor = state.activeTool === 'eraser' ? 'none' : (state.activeTool === 'hand' ? 'grab' : 'default');
       return;
     }
 
@@ -1905,6 +2054,23 @@
     state.boxSelectBounds = null;
     renderAll();
     updatePropertiesPanel();
+  });
+
+  interactiveCanvas.addEventListener('pointerenter', (e) => {
+    state.pointerInsideCanvas = true;
+    if (state.activeTool === 'eraser') {
+      interactiveCanvas.style.cursor = 'none';
+      const scenePt = screenToScene(e.clientX, e.clientY);
+      state.lastPointerScene = { x: scenePt.x, y: scenePt.y };
+      renderInteractive();
+    }
+  });
+
+  interactiveCanvas.addEventListener('pointerleave', () => {
+    state.pointerInsideCanvas = false;
+    if (state.activeTool === 'eraser') {
+      renderInteractive();
+    }
   });
 
   // --- Double-click to Edit Text or Create / Delete Linear Vertices ---
@@ -2140,23 +2306,6 @@
     textEditor.scrollTop = 0;
   });
 
-  function eraseAtPoint(pt) {
-    const hitEl = hitTestTopElement(pt);
-    if (hitEl) {
-      // Remove any bindings referencing this element
-      for (const el of state.elements) {
-        if (el.type === 'arrow') {
-          if (el.startBinding?.elementId === hitEl.id) el.startBinding = null;
-          if (el.endBinding?.elementId === hitEl.id) el.endBinding = null;
-        }
-      }
-      state.elements = state.elements.filter((e) => e.id !== hitEl.id);
-      state.selectedIds.delete(hitEl.id);
-      saveHistory();
-      renderAll();
-    }
-  }
-
   // --- Pan / Zoom Wheel Handler ---
 
   window.addEventListener('wheel', (e) => {
@@ -2299,7 +2448,7 @@
   window.addEventListener('keyup', (e) => {
     if (e.code === 'Space') {
       state.spacePressed = false;
-      interactiveCanvas.style.cursor = state.activeTool === 'hand' ? 'grab' : 'default';
+      interactiveCanvas.style.cursor = state.activeTool === 'eraser' ? 'none' : (state.activeTool === 'hand' ? 'grab' : 'default');
     }
   });
 
@@ -2313,9 +2462,10 @@
     document.querySelectorAll('.tool-button').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.tool === toolName);
     });
-    interactiveCanvas.style.cursor = toolName === 'hand' ? 'grab' : (toolName === 'selection' ? 'default' : 'crosshair');
+    interactiveCanvas.style.cursor = toolName === 'eraser' ? 'none' : (toolName === 'hand' ? 'grab' : (toolName === 'selection' ? 'default' : 'crosshair'));
     updatePropertiesPanel();
     updateToolbarHint();
+    renderInteractive();
   }
 
   function updateToolbarHint() {
@@ -2343,7 +2493,9 @@
     } else if (tool === 'hand') {
       hintEl.innerHTML = 'Drag canvas to pan, or use mouse wheel to zoom';
     } else if (tool === 'eraser') {
-      hintEl.innerHTML = 'Click or drag over elements to erase';
+      const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+      const optKey = isMac ? 'Option' : 'Alt';
+      hintEl.innerHTML = `Hold <kbd>${optKey}</kbd> to revert the elements marked for deletion`;
     } else if (tool === 'rectangle') {
       hintEl.innerHTML = 'Hold <kbd>Shift</kbd> to draw a square';
     } else if (tool === 'diamond') {
