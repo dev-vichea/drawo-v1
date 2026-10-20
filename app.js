@@ -242,7 +242,7 @@
    * Calculates intersection of arrow segment (pFrom -> pTo) with shape perimeter
    */
   function getShapePerimeterIntersection(shape, pFrom, pTo) {
-    if (shape.type === 'rectangle') {
+    if (shape.type === 'rectangle' || shape.type === 'stickynote') {
       const minX = Math.min(shape.x, shape.x + shape.width);
       const maxX = Math.max(shape.x, shape.x + shape.width);
       const minY = Math.min(shape.y, shape.y + shape.height);
@@ -688,7 +688,7 @@
       interactiveCtx.setLineDash([4 / state.zoom, 4 / state.zoom]);
 
       // Highlight target shape perimeter
-      if (el.type === 'rectangle') {
+      if (el.type === 'rectangle' || el.type === 'stickynote') {
         interactiveCtx.strokeRect(el.x, el.y, el.width, el.height);
       } else if (el.type === 'ellipse') {
         interactiveCtx.beginPath();
@@ -893,7 +893,7 @@
         if (hitEl.type === 'text') {
           openTextEditor(hitEl.x, hitEl.y, hitEl);
         } else if (
-          (hitEl.type === 'rectangle' || hitEl.type === 'diamond' || hitEl.type === 'ellipse') &&
+          (hitEl.type === 'rectangle' || hitEl.type === 'stickynote' || hitEl.type === 'diamond' || hitEl.type === 'ellipse') &&
           !e.ctrlKey &&
           !e.metaKey
         ) {
@@ -2019,239 +2019,143 @@
   document.getElementById('btnUndo').addEventListener('click', undo);
   document.getElementById('btnRedo').addEventListener('click', redo);
 
-  // --- Demo Diagram Generator (Matches User's Screenshot!) ---
-  document.getElementById('btnLoadDemo').addEventListener('click', loadDemoSecurityDiagram);
+  // --- Welcome Diagram for Drawo ---
+  document.getElementById('btnLoadDemo').addEventListener('click', loadDrawoWelcomeDiagram);
 
-  function loadDemoSecurityDiagram() {
+  function loadDrawoWelcomeDiagram() {
     state.elements = [];
     state.selectedIds.clear();
 
-    const cx = window.innerWidth / 2 - 300;
-    const cy = 180;
+    const cx = Math.max(50, Math.floor((window.innerWidth - 760) / 2));
+    const cy = Math.max(70, Math.floor((window.innerHeight - 520) / 2));
 
-    // 1. Top Box: Attack
-    const boxAttack = {
-      id: generateId(),
-      type: 'rectangle',
-      x: cx + 180,
-      y: cy - 90,
-      width: 150,
-      height: 60,
-      strokeColor: '#1e1e1e',
-      backgroundColor: 'transparent',
-      strokeWidth: 2,
-      roughness: 1,
-      seed: generateSeed(),
-      text: 'Attack\n(Motive (goal) - Method - Vulnerability)',
-      fontSize: 13,
-      boundElements: [],
-    };
-
-    // 2. Middle Central: Security Principles
-    const boxSec = {
-      id: generateId(),
-      type: 'rectangle',
-      x: cx + 160,
-      y: cy + 70,
-      width: 170,
-      height: 85,
-      strokeColor: '#1e1e1e',
-      backgroundColor: 'transparent',
-      strokeWidth: 2,
-      roughness: 1,
-      seed: generateSeed(),
-      text: 'Security Principles\nConfidentiality\nIntegrity\nAvailability',
-      fontSize: 13,
-      boundElements: [],
-    };
-
-    // 3. Middle Left: (unlocked router)
-    const elUnlocked = {
-      id: generateId(),
-      type: 'ellipse',
-      x: cx - 20,
-      y: cy + 40,
-      width: 130,
-      height: 40,
-      strokeColor: '#1e1e1e',
-      backgroundColor: 'transparent',
-      strokeWidth: 1.5,
-      roughness: 1,
-      seed: generateSeed(),
-      text: 'unlocked router',
-      fontSize: 13,
-      boundElements: [],
-    };
-
-    // 4. Middle Bottom: (Notification after transfer money)
-    const elNotification = {
-      id: generateId(),
-      type: 'ellipse',
-      x: cx - 40,
-      y: cy + 180,
-      width: 190,
-      height: 40,
-      strokeColor: '#1e1e1e',
-      backgroundColor: 'transparent',
-      strokeWidth: 1.5,
-      roughness: 1,
-      seed: generateSeed(),
-      text: 'Notification after transfer money',
-      fontSize: 12,
-      boundElements: [],
-    };
-
-    // 5. Middle Right Top: (secure by default) -> install third party app -> open port
-    const elSecure = {
-      id: generateId(),
-      type: 'ellipse',
-      x: cx + 420,
-      y: cy + 85,
-      width: 110,
-      height: 38,
-      strokeColor: '#1e1e1e',
-      backgroundColor: 'transparent',
-      strokeWidth: 1.5,
-      roughness: 1,
-      seed: generateSeed(),
-      text: 'secure by default',
-      fontSize: 12,
-      boundElements: [],
-    };
-
-    const elOpenPort = {
-      id: generateId(),
-      type: 'ellipse',
-      x: cx + 670,
-      y: cy + 85,
-      width: 90,
-      height: 38,
-      strokeColor: '#1e1e1e',
-      backgroundColor: 'transparent',
-      strokeWidth: 1.5,
-      roughness: 1,
-      seed: generateSeed(),
-      text: 'open port',
-      fontSize: 12,
-      boundElements: [],
-    };
-
-    const txtInstallApp = {
+    // 1. Header Title & Subtitle
+    const txtTitle = {
       id: generateId(),
       type: 'text',
-      x: cx + 540,
-      y: cy + 70,
-      width: 120,
+      x: cx + 225,
+      y: cy,
+      width: 310,
+      height: 40,
+      strokeColor: '#1e1e1e',
+      text: 'Welcome to drawo 🎨',
+      fontSize: 32,
+      seed: generateSeed(),
+    };
+
+    const txtSubtitle = {
+      id: generateId(),
+      type: 'text',
+      x: cx + 215,
+      y: cy + 45,
+      width: 330,
       height: 25,
-      strokeColor: '#1e1e1e',
-      text: 'install third party app',
-      fontSize: 12,
+      strokeColor: '#868e96',
+      text: 'Hand-drawn whiteboard • Free, local & private',
+      fontSize: 15,
       seed: generateSeed(),
     };
 
-    // 6. Middle Right Bottom: ssl/tls encryption -> https
-    const txtSSL = {
+    // 2. Left Card: Hand-drawn Shapes
+    const cardShapes = {
+      id: generateId(),
+      type: 'rectangle',
+      x: cx,
+      y: cy + 105,
+      width: 230,
+      height: 155,
+      strokeColor: '#364fc7',
+      backgroundColor: '#edf2ff',
+      strokeWidth: 2,
+      roundness: 'round',
+      roughness: 1,
+      seed: generateSeed(),
+      text: '✏️ Shapes & Fills\n\nDraw boxes, ellipses & lines\nCustom pastel palettes\nHand-sketched rough look',
+      fontSize: 13,
+      boundElements: [],
+    };
+
+    // 3. Center Card: Sticky Note with Quick Shortcuts
+    const cardSticky = {
+      id: generateId(),
+      type: 'stickynote',
+      x: cx + 275,
+      y: cy + 95,
+      width: 210,
+      height: 175,
+      strokeColor: '#e67700',
+      backgroundColor: '#fff3bf',
+      strokeWidth: 1.5,
+      roundness: 'round',
+      roughness: 1,
+      seed: generateSeed(),
+      text: '💡 Quick Shortcuts\n\n• V  Selection   • T  Text\n• R  Rectangle   • E  Ellipse\n• N  Sticky Note\n• A  Cycle Arrow Types\n• ⌘D  Duplicate',
+      fontSize: 13,
+      boundElements: [],
+    };
+
+    // 4. Right Card: Smart Arrows
+    const cardArrows = {
+      id: generateId(),
+      type: 'rectangle',
+      x: cx + 530,
+      y: cy + 105,
+      width: 230,
+      height: 155,
+      strokeColor: '#099268',
+      backgroundColor: '#ebfbee',
+      strokeWidth: 2,
+      roundness: 'round',
+      roughness: 1,
+      seed: generateSeed(),
+      text: '⚡ Smart Arrows\n\nStraight, Curved & Elbow\nAuto-binds to shapes\nFollows when you drag!',
+      fontSize: 13,
+      boundElements: [],
+    };
+
+    // 5. Bottom Card: Diamond CTA
+    const cardTry = {
+      id: generateId(),
+      type: 'diamond',
+      x: cx + 270,
+      y: cy + 325,
+      width: 220,
+      height: 120,
+      strokeColor: '#d6336c',
+      backgroundColor: '#fff0f6',
+      strokeWidth: 2,
+      roughness: 1,
+      seed: generateSeed(),
+      text: '✨ Try it!\n\nDrag any shape\nArrows follow!',
+      fontSize: 13,
+      boundElements: [],
+    };
+
+    // 6. Bottom Hint
+    const txtHint = {
       id: generateId(),
       type: 'text',
-      x: cx + 460,
-      y: cy + 150,
-      width: 100,
-      height: 30,
-      strokeColor: '#1e1e1e',
-      text: 'ssl/tls encryption',
-      fontSize: 13,
+      x: cx + 185,
+      y: cy + 475,
+      width: 390,
+      height: 25,
+      strokeColor: '#868e96',
+      text: 'Double-click any shape to edit text • Press Delete to clear',
+      fontSize: 14,
       seed: generateSeed(),
-    };
-
-    const elHttps = {
-      id: generateId(),
-      type: 'ellipse',
-      x: cx + 670,
-      y: cy + 145,
-      width: 75,
-      height: 38,
-      strokeColor: '#1e1e1e',
-      backgroundColor: 'transparent',
-      strokeWidth: 1.5,
-      roughness: 1,
-      seed: generateSeed(),
-      text: 'https',
-      fontSize: 13,
-      boundElements: [],
-    };
-
-    // 7. Bottom Workflow Sequence (4 green rounded boxes connected by green arrows!)
-    const stepY = cy + 320;
-    const boxStep1 = {
-      id: generateId(),
-      type: 'rectangle',
-      x: cx - 180,
-      y: stepY,
-      width: 130,
-      height: 44,
-      strokeColor: '#2b8a3e',
-      backgroundColor: 'transparent',
-      strokeWidth: 1.5,
-      roughness: 1,
-      seed: generateSeed(),
-      text: 'check the documents',
-      fontSize: 12,
-      boundElements: [],
-    };
-
-    const boxStep2 = {
-      id: generateId(),
-      type: 'rectangle',
-      x: cx + 40,
-      y: stepY,
-      width: 130,
-      height: 44,
-      strokeColor: '#2b8a3e',
-      backgroundColor: 'transparent',
-      strokeWidth: 1.5,
-      roughness: 1,
-      seed: generateSeed(),
-      text: 'Check CKO / SEF list',
-      fontSize: 12,
-      boundElements: [],
-    };
-
-    const boxStep3 = {
-      id: generateId(),
-      type: 'rectangle',
-      x: cx + 250,
-      y: stepY,
-      width: 140,
-      height: 44,
-      strokeColor: '#2b8a3e',
-      backgroundColor: 'transparent',
-      strokeWidth: 1.5,
-      roughness: 1,
-      seed: generateSeed(),
-      text: 'Prepare escort documents',
-      fontSize: 12,
-      boundElements: [],
-    };
-
-    const boxStep4 = {
-      id: generateId(),
-      type: 'rectangle',
-      x: cx + 470,
-      y: stepY,
-      width: 160,
-      height: 44,
-      strokeColor: '#2b8a3e',
-      backgroundColor: 'transparent',
-      strokeWidth: 1.5,
-      roughness: 1,
-      seed: generateSeed(),
-      text: 'Customs clearance and delivery',
-      fontSize: 12,
-      boundElements: [],
     };
 
     // Helper to create smart bound arrow
-    function createBoundArrow(fromEl, toEl, color = '#1e1e1e') {
+    function createBoundArrow(
+      fromEl,
+      toEl,
+      color = '#1e1e1e',
+      arrowType = 'straight',
+      strokeStyle = 'solid',
+      strokeWidth = 1.5,
+      startAnchorPoint = [0.5, 0.5],
+      endAnchorPoint = [0.5, 0.5]
+    ) {
       const arrow = {
         id: generateId(),
         type: 'arrow',
@@ -2261,18 +2165,24 @@
         height: 10,
         strokeColor: color,
         backgroundColor: 'transparent',
-        strokeWidth: 1.5,
+        strokeWidth,
+        strokeStyle,
+        arrowType,
+        startArrowhead: 'none',
+        endArrowhead: 'arrow',
+        roundness: 'round',
+        opacity: 100,
         roughness: 1,
         seed: generateSeed(),
         points: [[0, 0], [10, 10]],
         startBinding: {
           elementId: fromEl.id,
-          fixedPoint: [0.5, 0.5],
+          fixedPoint: startAnchorPoint,
           gap: BASE_BINDING_GAP,
         },
         endBinding: {
           elementId: toEl.id,
-          fixedPoint: [0.5, 0.5],
+          fixedPoint: endAnchorPoint,
           gap: BASE_BINDING_GAP,
         },
       };
@@ -2286,58 +2196,25 @@
       return arrow;
     }
 
-    // Connect middle elements with bound arrows
-    const arrow1 = createBoundArrow(elUnlocked, boxSec);
-    const arrow2 = createBoundArrow(boxSec, elNotification);
-    const arrow3 = createBoundArrow(elSecure, elOpenPort);
-    const arrow4 = {
-      id: generateId(),
-      type: 'arrow',
-      x: cx + 580,
-      y: cy + 162,
-      width: 70,
-      height: 10,
-      strokeColor: '#1e1e1e',
-      strokeWidth: 1.5,
-      roughness: 1,
-      seed: generateSeed(),
-      points: [[0, 0], [70, 0]],
-      startBinding: null,
-      endBinding: {
-        elementId: elHttps.id,
-        fixedPoint: [0, 0.5],
-        gap: BASE_BINDING_GAP,
-      },
-    };
-    updateArrowPoints(arrow4);
-
-    // Connect workflow step sequence with green bound arrows!
-    const arrowWorkflow1 = createBoundArrow(boxStep1, boxStep2, '#2b8a3e');
-    const arrowWorkflow2 = createBoundArrow(boxStep2, boxStep3, '#2b8a3e');
-    const arrowWorkflow3 = createBoundArrow(boxStep3, boxStep4, '#2b8a3e');
+    // Connect cards with smart bound arrows
+    const arrowLeftToSticky = createBoundArrow(cardShapes, cardSticky, '#364fc7', 'curved', 'solid', 2, [1, 0.5], [0, 0.5]);
+    const arrowStickyToRight = createBoundArrow(cardSticky, cardArrows, '#099268', 'curved', 'solid', 2, [1, 0.5], [0, 0.5]);
+    const arrowLeftToTry = createBoundArrow(cardShapes, cardTry, '#868e96', 'elbow', 'dashed', 1.5, [0.5, 1], [0, 0.5]);
+    const arrowRightToTry = createBoundArrow(cardArrows, cardTry, '#868e96', 'elbow', 'dashed', 1.5, [0.5, 1], [1, 0.5]);
 
     // Register all elements
     state.elements = [
-      boxAttack,
-      boxSec,
-      elUnlocked,
-      elNotification,
-      elSecure,
-      txtInstallApp,
-      elOpenPort,
-      txtSSL,
-      elHttps,
-      boxStep1,
-      boxStep2,
-      boxStep3,
-      boxStep4,
-      arrow1,
-      arrow2,
-      arrow3,
-      arrow4,
-      arrowWorkflow1,
-      arrowWorkflow2,
-      arrowWorkflow3,
+      txtTitle,
+      txtSubtitle,
+      cardShapes,
+      cardSticky,
+      cardArrows,
+      cardTry,
+      txtHint,
+      arrowLeftToSticky,
+      arrowStickyToRight,
+      arrowLeftToTry,
+      arrowRightToTry,
     ];
 
     // Recalculate all arrow endpoints now that shapes exist in state.elements!
@@ -2357,8 +2234,8 @@
   resizeCanvases();
   saveHistory();
 
-  // Load the initial demo so the user immediately sees the diagram from the screenshot!
-  loadDemoSecurityDiagram();
+  // Load the initial welcome demo showcasing drawo
+  loadDrawoWelcomeDiagram();
   updatePropertiesPanel();
   updateBottomHint();
 
