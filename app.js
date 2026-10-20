@@ -2327,27 +2327,31 @@
     }
     const tool = state.activeTool;
     if (tool === 'arrow') {
-      hintEl.innerHTML = 'Click to draw multi-point arrow, or drag for single arrow • Press <kbd>A</kbd> to switch arrow type';
+      hintEl.innerHTML = 'Click to start multiple points, drag for single line. Press <kbd>A</kbd> again to change arrow type.';
     } else if (tool === 'line') {
-      hintEl.innerHTML = 'Click to draw multi-point line, or drag for single line';
+      hintEl.innerHTML = 'Click to start multiple points, drag for single line';
     } else if (tool === 'stickynote') {
-      hintEl.innerHTML = 'Click to place a note, or drag to size it';
+      hintEl.innerHTML = 'Click anywhere to place a note, or drag to size it';
     } else if (tool === 'text') {
-      hintEl.innerHTML = 'Text tool (<kbd>T</kbd>): click anywhere to write • Click outside to finish';
+      hintEl.innerHTML = 'Click anywhere to write text, or double-click any shape to edit';
     } else if (tool === 'selection') {
-      hintEl.innerHTML = 'Selection tool (<kbd>V</kbd>): click to select • Drag corner to resize • Drag top dot to rotate';
+      if (state.selectedIds.size > 0) {
+        hintEl.innerHTML = 'Drag corners to resize, or drag top handle to rotate';
+      } else {
+        hintEl.innerHTML = 'To move canvas, hold <kbd>Space</kbd> while dragging, or use the hand tool';
+      }
     } else if (tool === 'hand') {
-      hintEl.innerHTML = 'Hand tool (<kbd>H</kbd>): drag canvas to pan • Mouse wheel to zoom';
+      hintEl.innerHTML = 'Drag canvas to pan, or use mouse wheel to zoom';
     } else if (tool === 'eraser') {
-      hintEl.innerHTML = 'Eraser tool (<kbd>E</kbd>): click or drag over elements to erase';
+      hintEl.innerHTML = 'Click or drag over elements to erase';
     } else if (tool === 'rectangle') {
-      hintEl.innerHTML = 'Click & drag to draw rectangle • Hold <kbd>Shift</kbd> for 1:1 ratio';
+      hintEl.innerHTML = 'Hold <kbd>Shift</kbd> to draw a square';
     } else if (tool === 'diamond') {
-      hintEl.innerHTML = 'Click & drag to draw diamond • Hold <kbd>Shift</kbd> for 1:1 ratio';
+      hintEl.innerHTML = 'Hold <kbd>Shift</kbd> to draw a proportional diamond';
     } else if (tool === 'ellipse') {
-      hintEl.innerHTML = 'Click & drag to draw ellipse • Hold <kbd>Shift</kbd> for circle';
+      hintEl.innerHTML = 'Hold <kbd>Shift</kbd> to draw a circle';
     } else {
-      hintEl.innerHTML = 'Click & drag to draw shape • Hold <kbd>Shift</kbd> for 1:1 ratio • Hold <kbd>Space</kbd> to pan';
+      hintEl.innerHTML = 'Hold <kbd>Shift</kbd> for fixed proportions';
     }
   }
 
@@ -2964,7 +2968,7 @@
       width: 330,
       height: 25,
       strokeColor: '#868e96',
-      text: 'Hand-drawn whiteboard • Free, local & private',
+      text: 'Hand-drawn whiteboard, free, local and private',
       fontSize: 15,
       seed: generateSeed(),
     };
@@ -3002,7 +3006,7 @@
       roundness: 'round',
       roughness: 1,
       seed: generateSeed(),
-      text: '💡 Quick Shortcuts\n\n• V  Selection   • T  Text\n• R  Rectangle   • E  Ellipse\n• N  Sticky Note\n• A  Cycle Arrow Types\n• ⌘D  Duplicate',
+      text: '💡 Shortcuts\n\nV  Selection    T  Text\nR  Rectangle    O  Ellipse\nN  Sticky Note  L  Line\nA  Cycle Arrows\n⌘D  Duplicate',
       fontSize: 13,
       boundElements: [],
     };
@@ -3053,7 +3057,7 @@
       width: 390,
       height: 25,
       strokeColor: '#868e96',
-      text: 'Double-click any shape to edit text • Press Delete to clear',
+      text: 'Double-click any shape to edit text, or press Delete to clear',
       fontSize: 14,
       seed: generateSeed(),
     };
