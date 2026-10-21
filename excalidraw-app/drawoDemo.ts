@@ -22,6 +22,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     text: "✏️ Welcome to Drawo",
     fontSize: 28,
     fontFamily: 1,
+    strokeColor: "#384959",
     textAlign: "left",
   });
   elements.push(title);
@@ -33,7 +34,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     text: "Hand-drawn whiteboard, free, local and private",
     fontSize: 16,
     fontFamily: 1,
-    strokeColor: "#868e96",
+    strokeColor: "#6A89A7",
     textAlign: "left",
   });
   elements.push(subtitle);
@@ -45,8 +46,8 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     y: cy + 100,
     width: 220,
     height: 160,
-    strokeColor: "#364fc7",
-    backgroundColor: "#edf2ff",
+    strokeColor: "#384959",
+    backgroundColor: "#BDDDFC",
     fillStyle: "solid",
     roundness: { type: 3 },
     roughness: 1,
@@ -60,7 +61,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     text: "🎨 Drawing Tools\n\nRectangles and diamonds\nEllipses and lines\nFreehand sketch\nSolid and hatch fills",
     fontSize: 14,
     fontFamily: 1,
-    strokeColor: "#1e1e1e",
+    strokeColor: "#384959",
     textAlign: "left",
   });
   elements.push(card1Text);
@@ -72,8 +73,8 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     y: cy + 100,
     width: 220,
     height: 160,
-    strokeColor: "#e67700",
-    backgroundColor: "#fff3bf",
+    strokeColor: "#558ec5",
+    backgroundColor: "#eaf2f9",
     fillStyle: "solid",
     roundness: { type: 3 },
     roughness: 1,
@@ -87,7 +88,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     text: "💡 Quick Shortcuts\n\nV  Selection\nR  Rectangle\nO  Ellipse\nP  Freehand pencil\nE  Eraser",
     fontSize: 14,
     fontFamily: 1,
-    strokeColor: "#1e1e1e",
+    strokeColor: "#384959",
     textAlign: "left",
   });
   elements.push(card2Text);
@@ -99,8 +100,8 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     y: cy + 100,
     width: 220,
     height: 160,
-    strokeColor: "#099268",
-    backgroundColor: "#ebfbee",
+    strokeColor: "#6A89A7",
+    backgroundColor: "#f4f8fb",
     fillStyle: "solid",
     roundness: { type: 3 },
     roughness: 1,
@@ -114,7 +115,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     text: "⚡ Smart Connectors\n\nStraight arrows\nCurved and elbow paths\nAuto-binding to shapes\nStays connected!",
     fontSize: 14,
     fontFamily: 1,
-    strokeColor: "#1e1e1e",
+    strokeColor: "#384959",
     textAlign: "left",
   });
   elements.push(card3Text);
@@ -128,7 +129,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     height: 0,
     points: [pointFrom<LocalPoint>(0, 0), pointFrom<LocalPoint>(40, 0)],
     endArrowhead: "arrow",
-    strokeColor: "#868e96",
+    strokeColor: "#6A89A7",
     strokeWidth: 2,
     roughness: 1,
   });
@@ -143,7 +144,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     height: 0,
     points: [pointFrom<LocalPoint>(0, 0), pointFrom<LocalPoint>(40, 0)],
     endArrowhead: "arrow",
-    strokeColor: "#868e96",
+    strokeColor: "#6A89A7",
     strokeWidth: 2,
     roughness: 1,
   });
@@ -156,8 +157,8 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     y: cy + 300,
     width: 200,
     height: 120,
-    strokeColor: "#d6336c",
-    backgroundColor: "#fff0f6",
+    strokeColor: "#384959",
+    backgroundColor: "#BDDDFC",
     fillStyle: "solid",
     roughness: 1,
     strokeWidth: 2,
@@ -170,7 +171,7 @@ export function loadDrawoDemo(api: ExcalidrawImperativeAPI) {
     text: "✨ 100% Local\nDrag to edit!",
     fontSize: 14,
     fontFamily: 1,
-    strokeColor: "#d6336c",
+    strokeColor: "#384959",
     textAlign: "center",
   });
   elements.push(diamondText);

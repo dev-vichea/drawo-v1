@@ -47,12 +47,12 @@ const workspaceBoardsStore = createStore(
 );
 
 const COLLECTION_COLORS = [
-  "#4c6ef5",
-  "#0ca678",
-  "#f59f00",
-  "#e64980",
-  "#7950f2",
-  "#15aabf",
+  "#558ec5",
+  "#6A89A7",
+  "#88BDF2",
+  "#384959",
+  "#4679ab",
+  "#7faad2",
 ];
 
 const createId = () =>
@@ -61,14 +61,14 @@ const createId = () =>
 const getDefaultCollections = (): DrawoCollection[] => {
   const now = Date.now();
   return [
-    { id: "col-work", name: "Work", color: "#4c6ef5", createdAt: now },
+    { id: "col-work", name: "Work", color: "#558ec5", createdAt: now },
     {
       id: "col-design",
       name: "System Design",
-      color: "#0ca678",
+      color: "#6A89A7",
       createdAt: now,
     },
-    { id: "col-personal", name: "Personal", color: "#f59f00", createdAt: now },
+    { id: "col-personal", name: "Personal", color: "#88BDF2", createdAt: now },
   ];
 };
 
