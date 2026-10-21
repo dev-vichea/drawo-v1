@@ -223,13 +223,13 @@ export default defineConfig(({ mode }) => {
               },
             },
           ],
-          maximumFileSizeToCacheInBytes: 2.3 * 1024 ** 2, // 2.3MB
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit for bundled app & engine
         },
         manifest: {
-          short_name: "Excalidraw",
-          name: "Excalidraw",
+          short_name: "Drawo",
+          name: "Drawo - Hand-Drawn Whiteboard & Workspaces",
           description:
-            "Excalidraw is a whiteboard tool that lets you easily sketch diagrams that have a hand-drawn feel to them.",
+            "Drawo is a collaborative hand-drawn whiteboard with multi-user workspaces, cloud sync, and personal MCP keys.",
           icons: [
             {
               src: "android-chrome-192x192.png",
