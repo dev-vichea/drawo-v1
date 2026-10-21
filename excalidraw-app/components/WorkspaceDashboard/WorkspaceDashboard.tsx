@@ -284,11 +284,57 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   const workspace = useAtomValue(drawoWorkspaceAtom);
   const userProfile = useAtomValue(drawoAuthAtom);
 
-  // Onboarding / screen flow state:
-  // "auto" shows Sign-In if not logged in, "no-workspace" if 0 workspaces, or "dashboard" if >=1 workspaces
+  // Onboarding / screen flow state synced with browser pathname:
+  // "/login" | "/signup" | "/no-workspace" | "/create-workspace" | "/user-settings" | "/workspace"
   const [screenOverride, setScreenOverride] = useState<
     "auto" | "no-workspace" | "create-workspace" | "user-settings"
-  >("auto");
+  >(() => {
+    const path = window.location.pathname;
+    if (path === "/no-workspace") {
+      return "no-workspace";
+    }
+    if (path === "/create-workspace") {
+      return "create-workspace";
+    }
+    if (path === "/user-settings") {
+      return "user-settings";
+    }
+    return "auto";
+  });
+
+  const navigatePage = (
+    nextOverride:
+      | "auto"
+      | "no-workspace"
+      | "create-workspace"
+      | "user-settings",
+    explicitPath?: string,
+  ) => {
+    setScreenOverride(nextOverride);
+    const targetPath =
+      explicitPath ||
+      (nextOverride === "no-workspace"
+        ? "/no-workspace"
+        : nextOverride === "create-workspace"
+        ? "/create-workspace"
+        : nextOverride === "user-settings"
+        ? "/user-settings"
+        : !userProfile.isCloudAuthenticated
+        ? "/login"
+        : userProfile.workspaces.length === 0
+        ? "/no-workspace"
+        : "/workspace");
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({}, "", targetPath);
+    }
+  };
+
+  const closeToEditor = () => {
+    setIsOpen(false);
+    if (window.location.pathname !== "/") {
+      window.history.pushState({}, "", `/${window.location.hash || ""}`);
+    }
+  };
 
   const [isWsSwitcherOpen, setIsWsSwitcherOpen] = useState(false);
 
@@ -334,7 +380,62 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
 
   useEffect(() => {
     DrawoAuth.initAuthListener();
-  }, []);
+
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === "/" || path === "") {
+        setIsOpen(false);
+      } else {
+        setIsOpen(true);
+        if (path === "/no-workspace") {
+          setScreenOverride("no-workspace");
+        } else if (path === "/create-workspace") {
+          setScreenOverride("create-workspace");
+        } else if (path === "/user-settings") {
+          setScreenOverride("user-settings");
+        } else {
+          setScreenOverride("auto");
+        }
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [setIsOpen]);
+
+  // Keep browser URL pathname synced with the active full-page view
+  useEffect(() => {
+    if (!isOpen) {
+      if (window.location.pathname !== "/") {
+        window.history.replaceState({}, "", `/${window.location.hash || ""}`);
+      }
+      return;
+    }
+
+    const desiredPath = !userProfile.isCloudAuthenticated
+      ? authMode === "signup"
+        ? "/signup"
+        : "/login"
+      : screenOverride === "no-workspace"
+      ? "/no-workspace"
+      : screenOverride === "create-workspace"
+      ? "/create-workspace"
+      : screenOverride === "user-settings"
+      ? "/user-settings"
+      : userProfile.workspaces.length === 0
+      ? "/no-workspace"
+      : "/workspace";
+
+    if (window.location.pathname !== desiredPath) {
+      window.history.pushState({}, "", desiredPath);
+    }
+  }, [
+    isOpen,
+    userProfile.isCloudAuthenticated,
+    userProfile.workspaces.length,
+    screenOverride,
+    authMode,
+  ]);
 
   useEffect(() => {
     setProfileNameInput(userProfile.displayName);
@@ -426,7 +527,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
     if (excalidrawAPI) {
       await DrawoWorkspace.switchBoard(boardId, excalidrawAPI);
     }
-    setIsOpen(false);
+    closeToEditor();
   };
 
   const handleCreateScene = async () => {
@@ -437,7 +538,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
         collectionId: colId,
       });
       await DrawoAuth.syncWorkspacesToCloud().catch(() => {});
-      setIsOpen(false);
+      closeToEditor();
     }
   };
 
@@ -583,20 +684,21 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   // =========================================================================
   if (activeScreen !== "dashboard") {
     return (
-      <div
-        className="drawo-dashboard-backdrop"
-        onClick={() => setIsOpen(false)}
-      >
+      <div className="drawo-dashboard-backdrop drawo-fullpage-view">
         <div
           className="drawo-dashboard-modal drawo-onboard-surface"
-          onClick={(e) => e.stopPropagation()}
           data-testid="drawo-workspace-onboarding"
         >
           <DoodleBackground />
 
           {/* Top Bar (Logo left, User avatar/Close right) */}
           <header className="drawo-onboard-topbar">
-            <div className="drawo-onboard-logo" title="Drawo">
+            <button
+              type="button"
+              className="drawo-onboard-logo"
+              title="Back to Drawo Editor"
+              onClick={closeToEditor}
+            >
               <svg viewBox="0 0 28 28" width="28" height="28" fill="none">
                 <path
                   d="M6 22L22 6M6 6l16 16"
@@ -605,7 +707,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   strokeLinecap="round"
                 />
               </svg>
-            </div>
+            </button>
 
             <div className="drawo-onboard-topbar__right">
               {userProfile.isCloudAuthenticated && (
@@ -614,7 +716,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   className="drawo-onboard-avatar-btn"
                   title={`${userProfile.displayName} (${userProfile.email})`}
                   onClick={() =>
-                    setScreenOverride(
+                    navigatePage(
                       activeScreen === "user-settings"
                         ? "auto"
                         : "user-settings",
@@ -631,14 +733,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   )}
                 </button>
               )}
-              <button
-                type="button"
-                className="drawo-close-modal-btn"
-                title="Back to canvas (Esc)"
-                onClick={() => setIsOpen(false)}
-              >
-                {CloseIcon}
-              </button>
             </div>
           </header>
 
@@ -879,7 +973,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   <button
                     type="button"
                     className="drawo-onboard-primary-btn"
-                    onClick={() => setScreenOverride("create-workspace")}
+                    onClick={() => navigatePage("create-workspace")}
                   >
                     <span>+</span>
                     <span>Create workspace</span>
@@ -889,7 +983,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   <button
                     type="button"
                     className="drawo-onboard-link-btn"
-                    onClick={() => setScreenOverride("user-settings")}
+                    onClick={() => navigatePage("user-settings")}
                   >
                     <svg
                       width="15"
@@ -911,7 +1005,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                     <button
                       type="button"
                       className="drawo-onboard-link-btn"
-                      onClick={() => setScreenOverride("auto")}
+                      onClick={() => navigatePage("auto")}
                     >
                       ← Back to {activeWorkspaceEntry?.name || "workspace"}
                     </button>
@@ -1062,7 +1156,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   <button
                     type="button"
                     className="drawo-onboard-link-btn"
-                    onClick={() => setScreenOverride("auto")}
+                    onClick={() => navigatePage("auto")}
                   >
                     ← Back
                   </button>
@@ -1079,7 +1173,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   <button
                     type="button"
                     className="drawo-onboard-inline-link"
-                    onClick={() => setIsOpen(false)}
+                    onClick={closeToEditor}
                   >
                     drawo.app
                   </button>{" "}
@@ -1125,7 +1219,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   const currentWorkspaceName = activeWorkspaceEntry?.name || "drawo";
 
   return (
-    <div className="drawo-dashboard-backdrop" onClick={() => setIsOpen(false)}>
+    <div className="drawo-dashboard-backdrop drawo-fullpage-view">
       <div
         className="drawo-dashboard-modal"
         onClick={(e) => e.stopPropagation()}
@@ -1414,8 +1508,8 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
 
               <button
                 className="drawo-close-modal-btn"
-                title="Close dashboard (Esc)"
-                onClick={() => setIsOpen(false)}
+                title="Back to canvas editor (Esc)"
+                onClick={closeToEditor}
               >
                 {CloseIcon}
               </button>

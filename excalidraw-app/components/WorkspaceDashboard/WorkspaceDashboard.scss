@@ -2,34 +2,36 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background-color: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background-color: var(--default-bg-color, #ffffff);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
   animation: drawoFadeIn 0.15s ease-out;
+
+  &.drawo-fullpage-view {
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+  }
 }
 
 @keyframes drawoFadeIn {
   from {
     opacity: 0;
-    transform: scale(0.99);
   }
   to {
     opacity: 1;
-    transform: scale(1);
   }
 }
 
 .drawo-dashboard-modal {
-  width: min(1320px, calc(100vw - 48px));
-  height: min(840px, calc(100vh - 48px));
+  width: 100vw;
+  height: 100vh;
   background-color: var(--island-bg-color, #ffffff);
-  border-radius: 16px;
-  border: 1px solid var(--default-border-color, #e5e7eb);
-  box-shadow: var(--modal-shadow);
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
   display: flex;
   overflow: hidden;
   font-family: var(--ui-font);
@@ -1278,6 +1280,21 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 28px;
+
+  .drawo-onboard-logo {
+    border: none;
+    background: transparent;
+    padding: 4px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background-color: var(--color-surface-primary-container);
+    }
+  }
 
   &__right {
     display: flex;

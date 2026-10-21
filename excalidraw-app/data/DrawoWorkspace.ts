@@ -58,7 +58,20 @@ export const workspaceBoardsStore = createStore(
   "drawo-boards-store",
 );
 
-export const isWorkspaceDashboardOpenAtom = atom<boolean>(false);
+export const WORKSPACE_PAGE_PATHS = [
+  "/login",
+  "/sign-in",
+  "/signup",
+  "/no-workspace",
+  "/create-workspace",
+  "/user-settings",
+  "/workspace",
+] as const;
+
+export const isWorkspaceDashboardOpenAtom = atom<boolean>(
+  typeof window !== "undefined" &&
+    WORKSPACE_PAGE_PATHS.includes(window.location.pathname as any),
+);
 
 const COLLECTION_COLORS = [
   "#558ec5",
