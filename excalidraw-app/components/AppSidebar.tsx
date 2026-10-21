@@ -1,8 +1,16 @@
 import { DefaultSidebar, Sidebar, THEME } from "@excalidraw/excalidraw";
 import {
+  checkIcon,
+  DuplicateIcon,
   messageCircleIcon,
+  pencilIcon,
+  PlusIcon,
   presentationIcon,
+  searchIcon,
+  TrashIcon,
 } from "@excalidraw/excalidraw/components/icons";
+import { FilledButton } from "@excalidraw/excalidraw/components/FilledButton";
+import { TextField } from "@excalidraw/excalidraw/components/TextField";
 import { useUIAppState } from "@excalidraw/excalidraw/context/ui-appState";
 import { DEFAULT_SIDEBAR } from "@excalidraw/common";
 import React, { useState } from "react";
@@ -25,7 +33,55 @@ const workspaceFolderIcon = (
     width="18"
     height="18"
   >
-    <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 4H5a2 2 0 0 0-2 2v1Z" />
+    <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2Z" />
+  </svg>
+);
+
+const folderIcon = (
+  <svg
+    viewBox="0 0 24 24"
+    width="15"
+    height="15"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2Z" />
+  </svg>
+);
+
+const boardIcon = (
+  <svg
+    viewBox="0 0 24 24"
+    width="15"
+    height="15"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect width="18" height="14" x="3" y="3" rx="2" />
+    <path d="M3 9h18" />
+    <path d="M9 21h6" />
+    <path d="M12 17v4" />
+  </svg>
+);
+
+const starIcon = (filled: boolean) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="14"
+    height="14"
+    fill={filled ? "#f59f00" : "none"}
+    stroke={filled ? "#f59f00" : "currentColor"}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   </svg>
 );
 
@@ -53,9 +109,6 @@ export const DrawoWorkspaceTopPill: React.FC<{
   const activeBoard =
     workspace.boards.find((b) => b.id === workspace.activeBoardId) ||
     workspace.boards[0];
-  const activeCollection = workspace.collections.find(
-    (c) => c.id === activeBoard?.collectionId,
-  );
 
   return (
     <button
@@ -70,12 +123,7 @@ export const DrawoWorkspaceTopPill: React.FC<{
         });
       }}
     >
-      <span
-        className="drawo-workspace-top-pill__dot"
-        style={{
-          backgroundColor: activeCollection?.color || "var(--color-primary)",
-        }}
-      />
+      <span className="drawo-workspace-top-pill__icon">{boardIcon}</span>
       <span className="drawo-workspace-top-pill__title">
         {activeBoard?.title || "Main Whiteboard"}
       </span>
@@ -165,13 +213,15 @@ export const AppSidebar: React.FC<{
         >
           <div className="drawo-workspace-header">
             <h3 className="drawo-workspace-header__title">
-              <span>📁</span>
+              <span className="drawo-workspace-header__icon">{folderIcon}</span>
               <span>Workspace</span>
             </h3>
-            <button
-              type="button"
-              className="drawo-workspace-btn-new"
-              data-testid="drawo-new-board-btn"
+            <FilledButton
+              size="medium"
+              variant="filled"
+              color="primary"
+              icon={PlusIcon}
+              label="New Board"
               onClick={() => {
                 if (excalidrawAPI) {
                   const colId =
@@ -184,17 +234,20 @@ export const AppSidebar: React.FC<{
                 }
               }}
             >
-              + New Board
-            </button>
+              New Board
+            </FilledButton>
           </div>
 
-          <input
-            type="text"
-            className="drawo-workspace-search"
-            placeholder="Search boards..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <div className="drawo-workspace-search-wrap">
+            <TextField
+              type="search"
+              icon={searchIcon}
+              placeholder="Search boards..."
+              value={searchQuery}
+              onChange={(value) => setSearchQuery(value)}
+              fullWidth
+            />
+          </div>
 
           <div className="drawo-workspace-collections">
             <button
@@ -204,7 +257,10 @@ export const AppSidebar: React.FC<{
               }`}
               onClick={() => setSelectedFilter("all")}
             >
-              All {workspace.boards.length}
+              <span>All</span>
+              <span className="drawo-chip-badge">
+                {workspace.boards.length}
+              </span>
             </button>
             <button
               type="button"
@@ -213,7 +269,10 @@ export const AppSidebar: React.FC<{
               }`}
               onClick={() => setSelectedFilter("favorites")}
             >
-              ★ Favorites
+              <span className="drawo-chip-icon">
+                {starIcon(selectedFilter === "favorites")}
+              </span>
+              <span>Favorites</span>
             </button>
 
             {workspace.collections.map((col) => (
@@ -225,10 +284,9 @@ export const AppSidebar: React.FC<{
                 }`}
                 onClick={() => setSelectedFilter(col.id)}
               >
-                <span
-                  className="drawo-collection-dot"
-                  style={{ backgroundColor: col.color }}
-                />
+                <span className="drawo-chip-icon" style={{ color: col.color }}>
+                  {folderIcon}
+                </span>
                 <span>{col.name}</span>
                 {selectedFilter === col.id && workspace.collections.length > 1 && (
                   <span
@@ -248,29 +306,35 @@ export const AppSidebar: React.FC<{
 
             <button
               type="button"
-              className="drawo-collection-chip"
+              className="drawo-collection-chip drawo-collection-chip--new"
               onClick={() => setIsCreatingCol((prev) => !prev)}
             >
-              + Folder
+              <span className="drawo-chip-icon">{PlusIcon}</span>
+              <span>Folder</span>
             </button>
           </div>
 
           {isCreatingCol && (
             <div className="drawo-workspace-new-col-row">
-              <input
-                type="text"
+              <TextField
                 placeholder="Folder name..."
                 value={newColName}
-                onChange={(e) => setNewColName(e.target.value)}
+                onChange={(value) => setNewColName(value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleCreateCollection();
                   }
                 }}
               />
-              <button type="button" onClick={handleCreateCollection}>
+              <FilledButton
+                size="medium"
+                variant="outlined"
+                color="primary"
+                label="Add"
+                onClick={handleCreateCollection}
+              >
                 Add
-              </button>
+              </FilledButton>
             </div>
           )}
 
@@ -294,6 +358,7 @@ export const AppSidebar: React.FC<{
                     {isEditing ? (
                       <input
                         type="text"
+                        className="drawo-board-card__rename-input"
                         value={editingTitle}
                         autoFocus
                         onClick={(e) => e.stopPropagation()}
@@ -311,8 +376,12 @@ export const AppSidebar: React.FC<{
                       </span>
                     )}
                     {isActive && (
-                      <span className="drawo-board-card__active-badge">
-                        Active
+                      <span
+                        className="drawo-board-card__active-indicator"
+                        title="Active Whiteboard"
+                      >
+                        <span className="drawo-active-icon">{checkIcon}</span>
+                        <span>Active</span>
                       </span>
                     )}
                   </div>
@@ -330,6 +399,7 @@ export const AppSidebar: React.FC<{
                     onClick={(e) => e.stopPropagation()}
                   >
                     <select
+                      className="drawo-board-card__select"
                       value={board.collectionId || ""}
                       onChange={(e) => {
                         DrawoWorkspace.moveBoardToCollection(
@@ -349,23 +419,32 @@ export const AppSidebar: React.FC<{
                     <div className="drawo-board-card__btns">
                       <button
                         type="button"
-                        title="Favorite board"
+                        className={`drawo-card-btn ${
+                          board.isFavorite ? "is-fav" : ""
+                        }`}
+                        title={
+                          board.isFavorite
+                            ? "Remove from favorites"
+                            : "Add to favorites"
+                        }
                         onClick={() => DrawoWorkspace.toggleFavorite(board.id)}
                       >
-                        {board.isFavorite ? "★" : "☆"}
+                        {starIcon(board.isFavorite)}
                       </button>
                       <button
                         type="button"
+                        className="drawo-card-btn"
                         title="Rename board"
                         onClick={() => {
                           setEditingBoardId(board.id);
                           setEditingTitle(board.title);
                         }}
                       >
-                        ✎
+                        {pencilIcon}
                       </button>
                       <button
                         type="button"
+                        className="drawo-card-btn"
                         title="Duplicate board"
                         onClick={() => {
                           if (excalidrawAPI) {
@@ -376,10 +455,11 @@ export const AppSidebar: React.FC<{
                           }
                         }}
                       >
-                        ⧉
+                        {DuplicateIcon}
                       </button>
                       <button
                         type="button"
+                        className="drawo-card-btn drawo-card-btn--danger"
                         title="Delete board"
                         onClick={() => {
                           if (excalidrawAPI) {
@@ -387,7 +467,7 @@ export const AppSidebar: React.FC<{
                           }
                         }}
                       >
-                        🗑
+                        {TrashIcon}
                       </button>
                     </div>
                   </div>
