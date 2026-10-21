@@ -1298,7 +1298,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   const currentWorkspaceName = activeWorkspaceEntry?.name || "drawo";
 
   return (
-    <div className="drawo-dashboard-backdrop drawo-fullpage-view">
+    <div className="drawo-dashboard-backdrop" onClick={closeToEditor}>
       <div
         className="drawo-dashboard-modal"
         onClick={(e) => e.stopPropagation()}

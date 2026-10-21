@@ -2,36 +2,51 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background-color: var(--default-bg-color, #ffffff);
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-  padding: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
   animation: drawoFadeIn 0.15s ease-out;
 
   &.drawo-fullpage-view {
     width: 100vw;
     height: 100vh;
     padding: 0;
+    background-color: var(--default-bg-color, #ffffff);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+
+    .drawo-dashboard-modal {
+      width: 100vw;
+      height: 100vh;
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+    }
   }
 }
 
 @keyframes drawoFadeIn {
   from {
     opacity: 0;
+    transform: scale(0.99);
   }
   to {
     opacity: 1;
+    transform: scale(1);
   }
 }
 
 .drawo-dashboard-modal {
-  width: 100vw;
-  height: 100vh;
+  width: min(1320px, calc(100vw - 48px));
+  height: min(840px, calc(100vh - 48px));
   background-color: var(--island-bg-color, #ffffff);
-  border-radius: 0;
-  border: none;
-  box-shadow: none;
+  border-radius: 16px;
+  border: 1px solid var(--default-border-color, #e5e7eb);
+  box-shadow: var(--modal-shadow);
   display: flex;
   overflow: hidden;
   font-family: var(--ui-font);
