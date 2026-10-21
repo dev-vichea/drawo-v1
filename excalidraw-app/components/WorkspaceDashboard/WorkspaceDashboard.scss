@@ -29,17 +29,11 @@
   background-color: var(--island-bg-color, #ffffff);
   border-radius: 16px;
   border: 1px solid var(--default-border-color, #e5e7eb);
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: var(--modal-shadow);
   display: flex;
   overflow: hidden;
   font-family: var(--ui-font);
   color: var(--text-primary-color);
-
-  @at-root .excalidraw.theme--dark & {
-    background-color: #202026;
-    border-color: #2e2e38;
-  }
 }
 
 /* ==========================================================================
@@ -55,11 +49,6 @@
   flex-direction: column;
   padding: 18px 14px 14px;
   user-select: none;
-
-  @at-root .excalidraw.theme--dark & {
-    background-color: #18181c;
-    border-color: #2e2e38;
-  }
 }
 
 /* Workspace Profile Header */
@@ -71,18 +60,17 @@
   margin-bottom: 12px;
 
   &__avatar {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--color-surface-lowest);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 15px;
     flex-shrink: 0;
-    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.35);
   }
 
   &__info {
@@ -106,68 +94,16 @@
     color: var(--color-gray-60, #868e96);
     line-height: 1.2;
   }
-
-  &__switcher {
-    border: none;
-    background: transparent;
-    color: var(--color-gray-60, #868e96);
-    padding: 4px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &:hover {
-      background-color: var(--button-gray-2, rgba(0, 0, 0, 0.05));
-      color: var(--text-primary-color);
-    }
-  }
 }
 
-/* Quick Search */
-.drawo-ws-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  background-color: var(--input-bg-color, #ffffff);
-  border: 1px solid var(--input-border-color, #e5e7eb);
-  border-radius: 8px;
+/* Search wrap using native TextField */
+.drawo-ws-search-wrap {
   margin-bottom: 12px;
-  transition: border-color 0.15s ease;
 
-  &:focus-within {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
-  }
-
-  &__icon {
-    display: flex;
-    color: var(--color-gray-50, #94a3b8);
-  }
-
-  &__input {
-    border: none;
-    background: transparent;
-    outline: none;
+  .TextInput {
+    --input-border-color: var(--default-border-color);
+    border-radius: 8px;
     font-size: 0.8125rem;
-    color: var(--text-primary-color);
-    width: 100%;
-
-    &::placeholder {
-      color: var(--color-gray-50, #94a3b8);
-    }
-  }
-
-  &__shortcut {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    color: var(--color-gray-50, #94a3b8);
-    background: var(--color-surface-mid, rgba(0, 0, 0, 0.04));
-    padding: 2px 5px;
-    border-radius: 4px;
-    flex-shrink: 0;
   }
 }
 
@@ -198,14 +134,25 @@
     }
 
     &--active {
-      background-color: var(--button-gray-2, rgba(0, 0, 0, 0.06));
+      background-color: var(--color-surface-primary-container);
+      color: var(--color-primary);
       font-weight: 600;
+
+      .drawo-ws-nav__icon svg {
+        color: var(--color-primary);
+      }
     }
   }
 
   &__icon {
     display: flex;
+    align-items: center;
     color: var(--color-gray-60, #64748b);
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+    }
   }
 }
 
@@ -226,21 +173,24 @@
 
   .drawo-ws-collections-add {
     border: none;
-    background: #6366f1;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--color-surface-lowest);
     width: 20px;
     height: 20px;
     border-radius: 6px;
-    font-size: 13px;
-    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform 0.1s ease, background-color 0.1s ease;
+    transition: background-color 0.1s ease, transform 0.1s ease;
+
+    svg {
+      width: 12px;
+      height: 12px;
+    }
 
     &:hover {
-      background-color: #4f46e5;
+      background-color: var(--color-brand-hover);
       transform: scale(1.05);
     }
   }
@@ -297,15 +247,18 @@
     text-overflow: ellipsis;
   }
 
-  /* Active Collection matches screenshot purple pill! */
+  /* Active Collection uses our theme primary accent */
   &--active {
-    background-color: #6366f1 !important;
-    color: #ffffff !important;
-    font-weight: 600;
-    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
+    background-color: var(--color-primary) !important;
+    color: var(--color-surface-lowest) !important;
+    font-weight: 700;
 
     .drawo-ws-col-item__icon {
-      color: #ffffff;
+      color: var(--color-surface-lowest);
+    }
+
+    &:hover {
+      background-color: var(--color-brand-hover) !important;
     }
   }
 }
@@ -327,16 +280,16 @@
     outline: none;
 
     &:focus {
-      border-color: #6366f1;
+      border-color: var(--color-primary);
     }
   }
 
   .drawo-ws-col-new-btn {
     border: none;
-    background: #6366f1;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--color-surface-lowest);
     font-size: 0.6875rem;
-    font-weight: 600;
+    font-weight: 700;
     padding: 4px 8px;
     border-radius: 6px;
     cursor: pointer;
@@ -369,20 +322,13 @@
     }
   }
 
-  .drawo-ws-user-bell {
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    font-size: 14px;
-    padding: 4px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &:hover {
-      background-color: var(--button-gray-2, rgba(0, 0, 0, 0.05));
-    }
+  .drawo-ws-user-status-pill {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    background: var(--color-surface-primary-container);
+    padding: 2px 8px;
+    border-radius: 999px;
   }
 }
 
@@ -396,10 +342,6 @@
   flex-direction: column;
   overflow: hidden;
   background-color: var(--island-bg-color, #ffffff);
-
-  @at-root .excalidraw.theme--dark & {
-    background-color: #202026;
-  }
 }
 
 /* Header */
@@ -455,18 +397,10 @@
 .drawo-sort-select-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
   border: 1px solid var(--default-border-color, #e5e7eb);
   border-radius: 8px;
-  padding: 6px 10px;
+  padding: 4px 8px;
   background-color: var(--input-bg-color, #ffffff);
-  font-size: 0.8125rem;
-  font-weight: 500;
-
-  .drawo-sort-icon {
-    display: flex;
-    color: var(--color-gray-60, #868e96);
-  }
 
   .drawo-sort-select {
     border: none;
@@ -490,6 +424,11 @@
   align-items: center;
   justify-content: center;
   transition: all 0.1s ease;
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
 
   &:hover {
     background-color: var(--button-gray-2, rgba(0, 0, 0, 0.05));
@@ -515,20 +454,15 @@
   padding: 14px 18px;
   border-radius: 12px;
   border: 1px solid var(--default-border-color, #e5e7eb);
-  background-color: var(--color-surface-lowest, #f8f9fa);
+  background-color: var(--color-surface-low, #f8f9fa);
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
 
-  @at-root .excalidraw.theme--dark & {
-    background-color: #19191d;
-    border-color: #2e2e38;
-  }
-
   &:hover {
-    border-color: #6366f1;
+    border-color: var(--color-primary);
+    background-color: var(--color-surface-primary-container);
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.12);
   }
 
   &__icon {
@@ -541,22 +475,22 @@
     flex-shrink: 0;
 
     &--import {
-      background-color: #ede9fe;
-      color: #6366f1;
+      background-color: var(--color-surface-primary-container);
+      color: var(--color-primary);
 
-      @at-root .excalidraw.theme--dark & {
-        background-color: rgba(99, 102, 241, 0.2);
-        color: #a5b4fc;
+      svg {
+        width: 1.25rem;
+        height: 1.25rem;
       }
     }
 
     &--create {
-      background-color: #e0e7ff;
-      color: #4f46e5;
+      background-color: var(--color-surface-primary-container);
+      color: var(--color-primary);
 
-      @at-root .excalidraw.theme--dark & {
-        background-color: rgba(79, 70, 229, 0.2);
-        color: #c7d2fe;
+      svg {
+        width: 1.25rem;
+        height: 1.25rem;
       }
     }
   }
@@ -623,15 +557,15 @@
     transform: translateY(-2px);
 
     .drawo-scene-card__thumb {
-      border-color: #6366f1;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-color: var(--color-primary);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
     }
   }
 
   &--active {
     .drawo-scene-card__thumb {
-      border-color: #6366f1 !important;
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+      border-color: var(--color-primary) !important;
+      box-shadow: 0 0 0 2px var(--color-primary) !important;
     }
   }
 
@@ -640,54 +574,13 @@
     aspect-ratio: 16 / 10;
     border-radius: 10px;
     border: 1px solid var(--default-border-color, #e5e7eb);
-    background-color: #ffffff;
+    background-color: var(--island-bg-color, #ffffff);
     overflow: hidden;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.15s ease;
-
-    @at-root .excalidraw.theme--dark & {
-      background-color: #17171a;
-      border-color: #2e2e38;
-    }
-  }
-
-  &__badge-play {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    border: 1px solid #c7d2fe;
-    background-color: rgba(255, 255, 255, 0.95);
-    color: #6366f1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-
-    @at-root .excalidraw.theme--dark & {
-      background-color: #202026;
-      border-color: #4338ca;
-    }
-  }
-
-  &__svg-mock {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px;
-  }
-
-  .drawo-mock-diagram {
-    width: 100%;
-    height: 100%;
-    opacity: 0.9;
   }
 
   &__time {
@@ -696,16 +589,12 @@
     right: 8px;
     font-size: 0.6875rem;
     font-weight: 500;
-    color: #868e96;
-    background-color: rgba(255, 255, 255, 0.85);
+    color: var(--color-gray-60, #868e96);
+    background-color: var(--island-bg-color);
+    border: 1px solid var(--default-border-color);
     padding: 2px 6px;
     border-radius: 4px;
     z-index: 2;
-
-    @at-root .excalidraw.theme--dark & {
-      background-color: rgba(23, 23, 26, 0.85);
-      color: #94a3b8;
-    }
   }
 
   /* Info */
@@ -734,7 +623,7 @@
     width: 100%;
     font-size: 0.875rem;
     font-weight: 600;
-    border: 1px solid #6366f1;
+    border: 1px solid var(--color-primary);
     border-radius: 4px;
     padding: 2px 6px;
     background-color: var(--input-bg-color);
@@ -761,6 +650,87 @@
   }
 }
 
+/* Live Thumbnail Styles */
+.drawo-thumb-rendered {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+  }
+}
+
+.drawo-thumb-empty {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &__grid {
+    position: absolute;
+    inset: 0;
+    background-size: 16px 16px;
+    background-image: radial-gradient(
+      circle,
+      var(--color-border-outline, rgba(0, 0, 0, 0.12)) 1px,
+      transparent 1px
+    );
+    opacity: 0.4;
+  }
+
+  &__content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__icon {
+    font-size: 20px;
+    opacity: 0.7;
+  }
+
+  &__text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-gray-60, #868e96);
+  }
+}
+
+.drawo-thumb-skeleton {
+  width: 100%;
+  height: 100%;
+  background: var(--color-surface-low);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &__pulse {
+    width: 70%;
+    height: 50%;
+    border-radius: 6px;
+    background: var(--color-surface-mid);
+    opacity: 0.4;
+    animation: drawoPulse 1.2s infinite ease-in-out;
+  }
+}
+
+@keyframes drawoPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
 .drawo-scene-btn {
   border: none;
   background: transparent;
@@ -771,6 +741,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
 
   &:hover {
     background-color: var(--button-gray-2, rgba(0, 0, 0, 0.06));
@@ -784,21 +759,16 @@
   top: 100%;
   right: 0;
   z-index: 50;
-  min-width: 160px;
+  min-width: 170px;
   background-color: var(--island-bg-color, #ffffff);
   border: 1px solid var(--default-border-color, #e5e7eb);
   border-radius: 8px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-island);
   padding: 4px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   animation: drawoFadeIn 0.1s ease-out;
-
-  @at-root .excalidraw.theme--dark & {
-    background-color: #282830;
-    border-color: #383844;
-  }
 
   button {
     border: none;
@@ -810,13 +780,21 @@
     border-radius: 6px;
     text-align: left;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .menu-icon svg {
+      width: 14px;
+      height: 14px;
+    }
 
     &:hover {
       background-color: var(--button-gray-2, rgba(0, 0, 0, 0.05));
     }
 
     &.danger {
-      color: #ef4444;
+      color: var(--color-danger, #ef4444);
       &:hover {
         background-color: rgba(239, 68, 68, 0.1);
       }
@@ -868,21 +846,6 @@
     color: var(--color-gray-60, #868e96);
     margin: 0 0 16px;
   }
-
-  &__btn {
-    border: none;
-    background-color: #6366f1;
-    color: #ffffff;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-
-    &:hover {
-      background-color: #4f46e5;
-    }
-  }
 }
 
 /* Settings & Members Panels */
@@ -895,11 +858,6 @@
     border-radius: 12px;
     padding: 24px;
     max-width: 600px;
-
-    @at-root .excalidraw.theme--dark & {
-      background-color: #18181c;
-      border-color: #2e2e38;
-    }
 
     h3 {
       font-size: 1.125rem;
@@ -928,8 +886,8 @@
       }
 
       .badge-plan {
-        background-color: rgba(99, 102, 241, 0.15);
-        color: #6366f1;
+        background-color: var(--color-surface-primary-container);
+        color: var(--color-primary);
         font-weight: 700;
         padding: 2px 8px;
         border-radius: 6px;
@@ -965,8 +923,8 @@
     .drawo-member-status {
       font-size: 0.6875rem;
       font-weight: 700;
-      color: #10b981;
-      background: rgba(16, 185, 129, 0.12);
+      color: var(--color-primary);
+      background: var(--color-surface-primary-container);
       padding: 2px 8px;
       border-radius: 6px;
     }

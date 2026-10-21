@@ -1,16 +1,37 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import clsx from "clsx";
+import { get } from "idb-keyval";
 
+import { exportScene } from "@excalidraw/excalidraw";
+import { getNonDeletedElements } from "@excalidraw/element";
+import { TextField } from "@excalidraw/excalidraw/components/TextField";
+import { FilledButton } from "@excalidraw/excalidraw/components/FilledButton";
+import {
+  searchIcon,
+  gridIcon,
+  settingsIcon,
+  usersIcon,
+  TrashIcon,
+  PlusIcon,
+  DuplicateIcon,
+  LinkIcon,
+  CloseIcon,
+  DotsHorizontalIcon,
+  presentationIcon,
+} from "@excalidraw/excalidraw/components/icons";
+
+import type { ExcalidrawElement } from "@excalidraw/element/types";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 
 import {
   DrawoWorkspace,
   drawoWorkspaceAtom,
   isWorkspaceDashboardOpenAtom,
+  workspaceBoardsStore,
   DEFAULT_COLLECTIONS,
   type DrawoBoardMeta,
-  type DrawoCollection,
+  type DrawoBoardScene,
 } from "../../data/DrawoWorkspace";
 
 import "./WorkspaceDashboard.scss";
@@ -56,104 +77,117 @@ export const formatRelativeTime = (timestamp: number): string => {
   return `${diffYear} years ago`;
 };
 
-// Inline SVG icons
-const SearchIcon = (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-);
+// Global memory cache for rendered thumbnails to avoid lag
+const thumbnailSvgCache = new Map<string, string>();
 
-const DashboardGridIcon = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="7" height="7" />
-    <rect x="14" y="3" width="7" height="7" />
-    <rect x="14" y="14" width="7" height="7" />
-    <rect x="3" y="14" width="7" height="7" />
-  </svg>
-);
+interface BoardThumbnailProps {
+  board: DrawoBoardMeta;
+  isActive: boolean;
+  excalidrawAPI: ExcalidrawImperativeAPI | null;
+}
 
-const SettingsIcon = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-  </svg>
-);
+const BoardThumbnail: React.FC<BoardThumbnailProps> = ({
+  board,
+  isActive,
+  excalidrawAPI,
+}) => {
+  const [svgHtml, setSvgHtml] = useState<string | null>(() => {
+    return thumbnailSvgCache.get(board.id) || null;
+  });
+  const [loading, setLoading] = useState<boolean>(!svgHtml);
 
-const UsersIcon = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
+  useEffect(() => {
+    let cancelled = false;
 
-const TrashIcon = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="3 6 5 6 21 6" />
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-  </svg>
-);
+    async function generateSvg() {
+      try {
+        let elements: readonly ExcalidrawElement[] = [];
 
-const ChevronUpDownIcon = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="7 15 12 20 17 15" />
-    <polyline points="7 9 12 4 17 9" />
-  </svg>
-);
+        if (isActive && excalidrawAPI) {
+          elements = excalidrawAPI.getSceneElements();
+        } else {
+          const scene = await get<DrawoBoardScene>(
+            board.id,
+            workspaceBoardsStore,
+          );
+          elements = scene?.elements || [];
+        }
 
-const SortIcon = (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 6h18M6 12h12m-9 6h6" />
-  </svg>
-);
+        const nonDeleted = getNonDeletedElements(elements);
+        if (nonDeleted.length === 0) {
+          if (!cancelled) {
+            setSvgHtml(null);
+            setLoading(false);
+          }
+          return;
+        }
 
-const ImportArrowIcon = (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-    <line x1="12" y1="18" x2="12" y2="12" />
-    <polyline points="9 15 12 12 15 15" />
-  </svg>
-);
+        const svg = await exportScene({
+          type: "svg",
+          data: {
+            elements: nonDeleted,
+            files: null,
+          },
+          config: {
+            skipInliningFonts: true,
+            canvasBackgroundColor: false,
+          },
+        });
 
-const CreateDocumentIcon = (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-    <line x1="12" y1="11" x2="12" y2="17" />
-    <line x1="9" y1="14" x2="15" y2="14" />
-  </svg>
-);
+        svg.setAttribute("width", "100%");
+        svg.setAttribute("height", "100%");
+        svg.style.width = "100%";
+        svg.style.height = "100%";
+        svg.style.objectFit = "contain";
 
-const CloseIcon = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
+        const html = svg.outerHTML;
+        thumbnailSvgCache.set(board.id, html);
 
-const LinkIcon = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-  </svg>
-);
+        if (!cancelled) {
+          setSvgHtml(html);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
 
-const PlayIcon = (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-    <polygon points="5 3 19 12 5 21 5 3" />
-  </svg>
-);
+    generateSvg();
 
-const MoreVerticalIcon = (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="12" cy="12" r="1.7" />
-    <circle cx="12" cy="5" r="1.7" />
-    <circle cx="12" cy="19" r="1.7" />
-  </svg>
-);
+    return () => {
+      cancelled = true;
+    };
+  }, [board.id, isActive, excalidrawAPI, board.updatedAt]);
+
+  if (loading) {
+    return (
+      <div className="drawo-thumb-skeleton">
+        <div className="drawo-thumb-skeleton__pulse" />
+      </div>
+    );
+  }
+
+  if (svgHtml) {
+    return (
+      <div
+        className="drawo-thumb-rendered"
+        dangerouslySetInnerHTML={{ __html: svgHtml }}
+      />
+    );
+  }
+
+  return (
+    <div className="drawo-thumb-empty">
+      <div className="drawo-thumb-empty__grid" />
+      <div className="drawo-thumb-empty__content">
+        <span className="drawo-thumb-empty__icon">✏️</span>
+        <span className="drawo-thumb-empty__text">Blank Canvas</span>
+      </div>
+    </div>
+  );
+};
 
 export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   excalidrawAPI,
@@ -182,14 +216,13 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const newColInputRef = useRef<HTMLInputElement>(null);
 
-  // Close on Escape, toggle on Cmd+P / Cmd+O
+  // Keyboard navigation: Escape closes, Cmd+P or Cmd+O toggles
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
         setIsOpen(false);
       }
       if ((e.metaKey || e.ctrlKey) && (e.key === "p" || e.key === "o")) {
-        // Only prevent default if we're in the app
         if (!e.shiftKey && !e.altKey) {
           e.preventDefault();
           setIsOpen((prev) => !prev);
@@ -200,14 +233,12 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, setIsOpen]);
 
-  // Focus new collection input when creating
   useEffect(() => {
     if (isCreatingCollection) {
       newColInputRef.current?.focus();
     }
   }, [isCreatingCollection]);
 
-  // Current active collection
   const activeCollection = useMemo(() => {
     return (
       workspace.collections.find((c) => c.id === selectedCollectionId) ||
@@ -216,7 +247,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
     );
   }, [workspace.collections, selectedCollectionId]);
 
-  // Filtered & sorted boards
   const displayBoards = useMemo(() => {
     let boards = workspace.boards;
 
@@ -228,7 +258,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
       if (selectedNav === "collection") {
         boards = boards.filter((b) => b.collectionId === selectedCollectionId);
       }
-      // if selectedNav === "dashboard", show all non-trash boards
     }
 
     if (searchQuery.trim()) {
@@ -326,30 +355,23 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
         <aside className="drawo-dashboard-sidebar">
           {/* Workspace Switcher / Profile Header */}
           <div className="drawo-ws-header">
-            <div className="drawo-ws-header__avatar">F</div>
+            <div className="drawo-ws-header__avatar">D</div>
             <div className="drawo-ws-header__info">
-              <div className="drawo-ws-header__title">fireside</div>
-              <div className="drawo-ws-header__plan">Enterprise Plan</div>
+              <div className="drawo-ws-header__title">drawo</div>
+              <div className="drawo-ws-header__plan">Local Workspace</div>
             </div>
-            <button
-              className="drawo-ws-header__switcher"
-              title="Switch Workspace"
-            >
-              {ChevronUpDownIcon}
-            </button>
           </div>
 
-          {/* Quick Search Input */}
-          <div className="drawo-ws-search">
-            <span className="drawo-ws-search__icon">{SearchIcon}</span>
-            <input
-              type="text"
+          {/* Native TextField component for search */}
+          <div className="drawo-ws-search-wrap">
+            <TextField
+              type="search"
+              icon={searchIcon}
               placeholder="Quick search"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="drawo-ws-search__input"
+              onChange={(val) => setSearchQuery(val)}
+              fullWidth
             />
-            <span className="drawo-ws-search__shortcut">⌘P</span>
           </div>
 
           {/* Core Navigation Items */}
@@ -360,7 +382,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
               })}
               onClick={() => setSelectedNav("dashboard")}
             >
-              <span className="drawo-ws-nav__icon">{DashboardGridIcon}</span>
+              <span className="drawo-ws-nav__icon">{gridIcon}</span>
               <span>Dashboard</span>
             </button>
             <button
@@ -369,7 +391,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
               })}
               onClick={() => setSelectedNav("settings")}
             >
-              <span className="drawo-ws-nav__icon">{SettingsIcon}</span>
+              <span className="drawo-ws-nav__icon">{settingsIcon}</span>
               <span>Workspace settings</span>
             </button>
             <button
@@ -378,7 +400,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
               })}
               onClick={() => setSelectedNav("members")}
             >
-              <span className="drawo-ws-nav__icon">{UsersIcon}</span>
+              <span className="drawo-ws-nav__icon">{usersIcon}</span>
               <span>Team members</span>
             </button>
             <button
@@ -400,7 +422,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
               title="Add collection"
               onClick={() => setIsCreatingCollection(true)}
             >
-              +
+              {PlusIcon}
             </button>
           </div>
 
@@ -462,9 +484,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
               <span className="drawo-ws-user-avatar">🐧</span>
               <span className="drawo-ws-user-name">Torvalds Unix</span>
             </div>
-            <button className="drawo-ws-user-bell" title="Notifications">
-              🔔
-            </button>
+            <span className="drawo-ws-user-status-pill">Active</span>
           </div>
         </aside>
 
@@ -513,9 +533,9 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
 
             <div className="drawo-main-header__actions">
               {/* Sort Dropdown */}
-              {(selectedNav === "collection" || selectedNav === "dashboard") && (
+              {(selectedNav === "collection" ||
+                selectedNav === "dashboard") && (
                 <div className="drawo-sort-select-wrap">
-                  <span className="drawo-sort-icon">{SortIcon}</span>
                   <select
                     className="drawo-sort-select"
                     value={sortMode}
@@ -539,15 +559,15 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
             </div>
           </header>
 
-          {/* Quick Action Banners (Import Scenes + / Create Scene +) */}
+          {/* Quick Action Banners (Import Scenes + / Create Scene +) using Native FilledButton */}
           {(selectedNav === "collection" || selectedNav === "dashboard") && (
             <div className="drawo-action-banners-row">
-              <button
+              <div
                 className="drawo-action-banner"
                 onClick={handleImportClick}
               >
                 <div className="drawo-action-banner__icon drawo-action-banner__icon--import">
-                  {ImportArrowIcon}
+                  {presentationIcon}
                 </div>
                 <div className="drawo-action-banner__content">
                   <div className="drawo-action-banner__title">
@@ -557,14 +577,14 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                     Upload .excalidraw or .json
                   </div>
                 </div>
-              </button>
+              </div>
 
-              <button
+              <div
                 className="drawo-action-banner"
                 onClick={handleCreateScene}
               >
                 <div className="drawo-action-banner__icon drawo-action-banner__icon--create">
-                  {CreateDocumentIcon}
+                  {PlusIcon}
                 </div>
                 <div className="drawo-action-banner__content">
                   <div className="drawo-action-banner__title">
@@ -574,7 +594,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                     Start a fresh blank canvas
                   </div>
                 </div>
-              </button>
+              </div>
 
               {/* Hidden file input for import */}
               <input
@@ -609,12 +629,16 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                       : "Click 'Create scene +' above or import existing .excalidraw files."}
                   </p>
                   {selectedNav !== "trash" && (
-                    <button
-                      className="drawo-scenes-empty__btn"
+                    <FilledButton
+                      size="large"
+                      variant="filled"
+                      color="primary"
+                      icon={PlusIcon}
+                      label="Create First Scene"
                       onClick={handleCreateScene}
                     >
                       Create First Scene
-                    </button>
+                    </FilledButton>
                   )}
                 </div>
               ) : (
@@ -631,155 +655,19 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                         })}
                         onClick={() => handleSelectBoard(board.id)}
                       >
-                        {/* Thumbnail Canvas Box */}
+                        {/* Dynamic Live Board Thumbnail */}
                         <div className="drawo-scene-card__thumb">
-                          {/* Play button indicator in top-left */}
-                          <div className="drawo-scene-card__badge-play">
-                            {PlayIcon}
-                          </div>
-
-                          {/* Thumbnail preview vector diagram / drawing representation */}
-                          <div className="drawo-scene-card__svg-mock">
-                            <svg
-                              viewBox="0 0 200 125"
-                              className="drawo-mock-diagram"
-                            >
-                              {/* Background subtle grid lines */}
-                              <line
-                                x1="0"
-                                y1="30"
-                                x2="200"
-                                y2="30"
-                                stroke="#f1f3f5"
-                                strokeDasharray="3 3"
-                              />
-                              <line
-                                x1="0"
-                                y1="70"
-                                x2="200"
-                                y2="70"
-                                stroke="#f1f3f5"
-                                strokeDasharray="3 3"
-                              />
-                              <line
-                                x1="0"
-                                y1="100"
-                                x2="200"
-                                y2="100"
-                                stroke="#f1f3f5"
-                                strokeDasharray="3 3"
-                              />
-
-                              {/* Stylized diagram nodes */}
-                              <rect
-                                x="20"
-                                y="25"
-                                width="40"
-                                height="22"
-                                rx="4"
-                                fill="#e0f2fe"
-                                stroke="#38bdf8"
-                                strokeWidth="1.2"
-                              />
-                              <text
-                                x="40"
-                                y="39"
-                                fontSize="7"
-                                fill="#0369a1"
-                                textAnchor="middle"
-                                fontFamily="sans-serif"
-                              >
-                                Client
-                              </text>
-
-                              <path
-                                d="M60 36 L85 36"
-                                stroke="#94a3b8"
-                                strokeWidth="1.2"
-                                markerEnd="url(#arrow)"
-                              />
-
-                              <rect
-                                x="85"
-                                y="20"
-                                width="46"
-                                height="32"
-                                rx="5"
-                                fill="#f5f3ff"
-                                stroke="#818cf8"
-                                strokeWidth="1.2"
-                              />
-                              <text
-                                x="108"
-                                y="35"
-                                fontSize="7"
-                                fill="#4f46e5"
-                                textAnchor="middle"
-                                fontFamily="sans-serif"
-                              >
-                                Gateway
-                              </text>
-
-                              <path
-                                d="M131 36 L155 36"
-                                stroke="#94a3b8"
-                                strokeWidth="1.2"
-                              />
-
-                              <rect
-                                x="155"
-                                y="25"
-                                width="35"
-                                height="22"
-                                rx="4"
-                                fill="#dcfce7"
-                                stroke="#34d399"
-                                strokeWidth="1.2"
-                              />
-                              <text
-                                x="172"
-                                y="39"
-                                fontSize="7"
-                                fill="#059669"
-                                textAnchor="middle"
-                                fontFamily="sans-serif"
-                              >
-                                API
-                              </text>
-
-                              {/* Lower row */}
-                              <path
-                                d="M108 52 L108 75"
-                                stroke="#94a3b8"
-                                strokeWidth="1.2"
-                              />
-
-                              <rect
-                                x="85"
-                                y="75"
-                                width="46"
-                                height="26"
-                                rx="4"
-                                fill="#fef3c7"
-                                stroke="#fbbf24"
-                                strokeWidth="1.2"
-                              />
-                              <text
-                                x="108"
-                                y="91"
-                                fontSize="7"
-                                fill="#b45309"
-                                textAnchor="middle"
-                                fontFamily="sans-serif"
-                              >
-                                Database
-                              </text>
-                            </svg>
-                          </div>
+                          <BoardThumbnail
+                            board={board}
+                            isActive={isActive}
+                            excalidrawAPI={excalidrawAPI}
+                          />
 
                           {/* Relative Time badge in bottom right */}
                           <div className="drawo-scene-card__time">
-                            {formatRelativeTime(board.updatedAt || board.createdAt)}
+                            {formatRelativeTime(
+                              board.updatedAt || board.createdAt,
+                            )}
                           </div>
                         </div>
 
@@ -857,7 +745,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                                   )
                                 }
                               >
-                                {MoreVerticalIcon}
+                                {DotsHorizontalIcon}
                               </button>
 
                               {/* Context Dropdown Menu */}
@@ -912,6 +800,9 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                                           setActiveMenuBoardId(null);
                                         }}
                                       >
+                                        <span className="menu-icon">
+                                          {DuplicateIcon}
+                                        </span>
                                         Duplicate
                                       </button>
                                       <div className="drawo-menu-divider" />
@@ -941,6 +832,9 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                                           setActiveMenuBoardId(null);
                                         }}
                                       >
+                                        <span className="menu-icon">
+                                          {TrashIcon}
+                                        </span>
                                         Move to Trash
                                       </button>
                                     </>
@@ -965,11 +859,11 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                 <h3>Workspace Details</h3>
                 <div className="drawo-ws-setting-row">
                   <span className="label">Workspace Name:</span>
-                  <span className="val">fireside</span>
+                  <span className="val">drawo</span>
                 </div>
                 <div className="drawo-ws-setting-row">
                   <span className="label">Plan:</span>
-                  <span className="badge-plan">Enterprise Plan (Offline)</span>
+                  <span className="badge-plan">Offline Local Plan</span>
                 </div>
                 <div className="drawo-ws-setting-row">
                   <span className="label">Total Boards:</span>
@@ -996,7 +890,9 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   <span className="drawo-member-avatar">🐧</span>
                   <div className="drawo-member-info">
                     <div className="drawo-member-name">Torvalds Unix</div>
-                    <div className="drawo-member-role">Workspace Owner • Admin</div>
+                    <div className="drawo-member-role">
+                      Workspace Owner • Admin
+                    </div>
                   </div>
                   <span className="drawo-member-status">Active</span>
                 </div>

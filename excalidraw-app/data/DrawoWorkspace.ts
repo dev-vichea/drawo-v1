@@ -9,6 +9,13 @@ import type {
 } from "@excalidraw/excalidraw/types";
 
 import { appJotaiStore, atom } from "../app-jotai";
+import {
+  getWelcomeDemoElements,
+  getYouTubeScenarioElements,
+  getDisputeAnalysisElements,
+  getOnboardingProcessElements,
+  getMindMapElements,
+} from "../drawoDemo";
 
 export interface DrawoCollection {
   id: string;
@@ -46,7 +53,7 @@ export interface DrawoWorkspaceState {
 }
 
 const WORKSPACE_META_KEY = "drawo-workspace-meta-v1";
-const workspaceBoardsStore = createStore(
+export const workspaceBoardsStore = createStore(
   "drawo-workspace-db",
   "drawo-boards-store",
 );
@@ -713,4 +720,37 @@ export class DrawoWorkspace {
       ),
     });
   }
+}
+
+export const seedInitialBoardScenes = async () => {
+  const seeds = [
+    { id: "board-main", getElements: getWelcomeDemoElements },
+    { id: "board-youtube", getElements: getYouTubeScenarioElements },
+    { id: "board-dispute", getElements: getDisputeAnalysisElements },
+    { id: "board-onboarding", getElements: getOnboardingProcessElements },
+    { id: "board-mindmap", getElements: getMindMapElements },
+  ];
+
+  for (const s of seeds) {
+    try {
+      const existing = await get<DrawoBoardScene>(s.id, workspaceBoardsStore);
+      if (!existing || !existing.elements || existing.elements.length === 0) {
+        const elements = s.getElements();
+        await set(
+          s.id,
+          {
+            elements,
+            appState: { viewBackgroundColor: "#ffffff" },
+          },
+          workspaceBoardsStore,
+        );
+      }
+    } catch {
+      // ignore IndexedDB error
+    }
+  }
+};
+
+if (typeof window !== "undefined") {
+  seedInitialBoardScenes().catch(() => {});
 }
