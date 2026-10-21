@@ -9,13 +9,6 @@ import type {
 } from "@excalidraw/excalidraw/types";
 
 import { appJotaiStore, atom } from "../app-jotai";
-import {
-  getWelcomeDemoElements,
-  getYouTubeScenarioElements,
-  getDisputeAnalysisElements,
-  getOnboardingProcessElements,
-  getMindMapElements,
-} from "../drawoDemo";
 
 export interface DrawoCollection {
   id: string;
@@ -99,137 +92,9 @@ export const DEFAULT_COLLECTIONS: DrawoCollection[] = [
     name: "Private",
     icon: "🔒",
     description:
-      "This is your private collection. No other team members can see it. Drag a scene to a different collection to make it visible to other team members.",
+      "This is your private collection. Drag a scene here or to other collections you create.",
     color: "#6366f1",
     createdAt: 1700000000000,
-  },
-  {
-    id: "col-features",
-    name: "Features",
-    icon: "🚀",
-    description: "Feature specs, user stories, and architecture roadmaps.",
-    color: "#f97316",
-    createdAt: 1700000001000,
-  },
-  {
-    id: "col-things",
-    name: "Things",
-    icon: "❓",
-    description: "Explorations, experiments, and scratchpad diagrams.",
-    color: "#eab308",
-    createdAt: 1700000002000,
-  },
-  {
-    id: "col-main",
-    name: "Main",
-    icon: "🚩",
-    description: "Production diagrams, company assets, and shared standards.",
-    color: "#ef4444",
-    createdAt: 1700000003000,
-  },
-  {
-    id: "col-wireframes",
-    name: "Wireframes",
-    icon: "📐",
-    description: "User journey flows, low-fidelity wireframes, and UI mockups.",
-    color: "#3b82f6",
-    createdAt: 1700000004000,
-  },
-  {
-    id: "col-marketing",
-    name: "Marketing",
-    icon: "🧠",
-    description: "Campaign visuals, brand collateral, and presentation decks.",
-    color: "#ec4899",
-    createdAt: 1700000005000,
-  },
-  {
-    id: "col-engineering",
-    name: "Engineering",
-    icon: "🏗",
-    description:
-      "System topologies, cloud microservices, and database schemas.",
-    color: "#10b981",
-    createdAt: 1700000006000,
-  },
-  {
-    id: "col-design",
-    name: "Design",
-    icon: "🎨",
-    description: "Design systems, layout sketches, and color schemes.",
-    color: "#8b5cf6",
-    createdAt: 1700000007000,
-  },
-  {
-    id: "col-components",
-    name: "Components",
-    icon: "🧩",
-    description: "Reusable diagram elements, templates, and libraries.",
-    color: "#06b6d4",
-    createdAt: 1700000008000,
-  },
-];
-
-const getSeedBoards = (now: number): DrawoBoardMeta[] => [
-  {
-    id: "board-youtube",
-    title: "YouTube scenario",
-    collectionId: "col-private",
-    isFavorite: false,
-    author: "Torvalds Unix",
-    elementCount: 14,
-    updatedAt: now - 1000 * 60 * 60 * 24 * 60, // 2 months ago
-    createdAt: now - 1000 * 60 * 60 * 24 * 60,
-  },
-  {
-    id: "board-dispute",
-    title: "Dispute Analysis",
-    collectionId: "col-private",
-    isFavorite: false,
-    author: "Torvalds Unix",
-    elementCount: 28,
-    updatedAt: now - 1000 * 60 * 60 * 24 * 120, // 4 months ago
-    createdAt: now - 1000 * 60 * 60 * 24 * 120,
-  },
-  {
-    id: "board-untitled-1",
-    title: "Untitled scene",
-    collectionId: "col-private",
-    isFavorite: false,
-    author: "Torvalds Unix",
-    elementCount: 6,
-    updatedAt: now - 1000 * 60 * 60 * 24 * 60, // 2 months ago
-    createdAt: now - 1000 * 60 * 60 * 24 * 60,
-  },
-  {
-    id: "board-onboarding",
-    title: "Employee Onboarding Process",
-    collectionId: "col-private",
-    isFavorite: true,
-    author: "Torvalds Unix",
-    elementCount: 42,
-    updatedAt: now - 1000 * 60 * 60 * 24 * 365, // a year ago
-    createdAt: now - 1000 * 60 * 60 * 24 * 365,
-  },
-  {
-    id: "board-untitled-2",
-    title: "Untitled scene",
-    collectionId: "col-private",
-    isFavorite: false,
-    author: "Torvalds Unix",
-    elementCount: 18,
-    updatedAt: now - 1000 * 60 * 60 * 24 * 365, // a year ago
-    createdAt: now - 1000 * 60 * 60 * 24 * 365,
-  },
-  {
-    id: "board-mindmap",
-    title: "Mind Map",
-    collectionId: "col-private",
-    isFavorite: true,
-    author: "Torvalds Unix",
-    elementCount: 35,
-    updatedAt: now - 1000 * 60 * 60 * 24 * 365, // a year ago
-    createdAt: now - 1000 * 60 * 60 * 24 * 365,
   },
 ];
 
@@ -245,61 +110,73 @@ const loadWorkspaceMeta = (): DrawoWorkspaceState => {
         parsed.boards.length > 0 &&
         parsed.activeBoardId
       ) {
-        // Merge or upgrade collections
+        // Filter out legacy mock seed boards and Torvalds mock author
+        const cleanBoards = parsed.boards
+          .filter(
+            (b) =>
+              ![
+                "board-youtube",
+                "board-dispute",
+                "board-onboarding",
+                "board-mindmap",
+                "board-untitled-1",
+                "board-untitled-2",
+                "board-main",
+              ].includes(b.id) && b.author !== "Torvalds Unix",
+          )
+          .map((b) => ({
+            ...b,
+            author: b.author && b.author !== "Torvalds Unix" ? b.author : "Me",
+            collectionId: b.collectionId || "col-private",
+          }));
+
+        // Preserve user collections and col-private
         const existingCols = Array.isArray(parsed.collections)
           ? parsed.collections
           : [];
         const mergedCols = [...DEFAULT_COLLECTIONS];
         for (const ec of existingCols) {
-          if (!mergedCols.some((c) => c.id === ec.id)) {
+          if (
+            !mergedCols.some((c) => c.id === ec.id) &&
+            (ec.createdAt > 1700000010000 || !ec.id.startsWith("col-"))
+          ) {
             mergedCols.push(ec);
           }
         }
 
-        // Ensure boards have author & collectionId mapped to private if null
-        const upgradedBoards = parsed.boards.map((b) => ({
-          ...b,
-          author: b.author || "Torvalds Unix",
-          collectionId: b.collectionId || "col-private",
-        }));
+        if (cleanBoards.length > 0) {
+          const activeBoardId = cleanBoards.some(
+            (b) => b.id === parsed.activeBoardId,
+          )
+            ? parsed.activeBoardId
+            : cleanBoards[0].id;
 
-        // If user only had 1-2 boards, add seed boards so the dashboard looks full
-        const finalBoards =
-          upgradedBoards.length <= 2
-            ? [
-                ...upgradedBoards,
-                ...getSeedBoards(now).filter(
-                  (sb) => !upgradedBoards.some((ub) => ub.id === sb.id),
-                ),
-              ]
-            : upgradedBoards;
-
-        return {
-          activeBoardId: parsed.activeBoardId,
-          boards: finalBoards,
-          collections: mergedCols,
-        };
+          return {
+            activeBoardId,
+            boards: cleanBoards,
+            collections: mergedCols,
+          };
+        }
       }
     }
   } catch {
     // fallback to default state
   }
 
-  const seed = getSeedBoards(now);
   const initialBoard: DrawoBoardMeta = {
-    id: "board-main",
-    title: "Drawo Welcome Demo",
+    id: `board-${createId()}`,
+    title: "Untitled scene",
     collectionId: "col-private",
-    isFavorite: true,
-    author: "Torvalds Unix",
-    elementCount: 15,
+    isFavorite: false,
+    author: "Me",
+    elementCount: 0,
     updatedAt: now,
     createdAt: now,
   };
 
   const initialState: DrawoWorkspaceState = {
     activeBoardId: initialBoard.id,
-    boards: [initialBoard, ...seed],
+    boards: [initialBoard],
     collections: DEFAULT_COLLECTIONS,
   };
 
@@ -665,10 +542,10 @@ export class DrawoWorkspace {
       const now = Date.now();
       const fallback: DrawoBoardMeta = {
         id: `board-${createId()}`,
-        title: "Untitled Board 1",
+        title: "Untitled scene",
         collectionId: "col-private",
         isFavorite: false,
-        author: "Torvalds Unix",
+        author: "Me",
         elementCount: 0,
         updatedAt: now,
         createdAt: now,
@@ -749,35 +626,3 @@ export class DrawoWorkspace {
   }
 }
 
-export const seedInitialBoardScenes = async () => {
-  const seeds = [
-    { id: "board-main", getElements: getWelcomeDemoElements },
-    { id: "board-youtube", getElements: getYouTubeScenarioElements },
-    { id: "board-dispute", getElements: getDisputeAnalysisElements },
-    { id: "board-onboarding", getElements: getOnboardingProcessElements },
-    { id: "board-mindmap", getElements: getMindMapElements },
-  ];
-
-  for (const s of seeds) {
-    try {
-      const existing = await get<DrawoBoardScene>(s.id, workspaceBoardsStore);
-      if (!existing || !existing.elements || existing.elements.length === 0) {
-        const elements = s.getElements();
-        await set(
-          s.id,
-          {
-            elements,
-            appState: { viewBackgroundColor: "#ffffff" },
-          },
-          workspaceBoardsStore,
-        );
-      }
-    } catch {
-      // ignore IndexedDB error
-    }
-  }
-};
-
-if (typeof window !== "undefined") {
-  seedInitialBoardScenes().catch(() => {});
-}

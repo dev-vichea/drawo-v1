@@ -397,7 +397,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
 
   // Create Workspace state
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
-  const [includeStarterScenes, setIncludeStarterScenes] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const newColInputRef = useRef<HTMLInputElement>(null);
@@ -671,7 +670,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
       const defaultName =
         newWorkspaceName.trim() ||
         `${userProfile.displayName || "My"}'s Workspace`;
-      await DrawoAuth.createWorkspace(defaultName, includeStarterScenes);
+      await DrawoAuth.createWorkspace(defaultName, false);
       setNewWorkspaceName("");
       setScreenOverride("auto");
     } finally {
@@ -1089,17 +1088,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                       selectOnRender
                       fullWidth
                     />
-
-                    <label className="drawo-create-ws-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={includeStarterScenes}
-                        onChange={(e) =>
-                          setIncludeStarterScenes(e.target.checked)
-                        }
-                      />
-                      <span>Include starter example scenes & templates</span>
-                    </label>
 
                     <button
                       type="submit"
@@ -1797,8 +1785,10 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   <span className="val">{userProfile.email}</span>
                 </div>
                 <div className="drawo-ws-setting-row">
-                  <span className="label">Firebase Project:</span>
-                  <span className="badge-plan">drawo-e4ac6 (Spark)</span>
+                  <span className="label">Cloud Sync:</span>
+                  <span className="badge-plan">
+                    {userProfile.isCloudAuthenticated ? "Connected" : "Offline"}
+                  </span>
                 </div>
                 <div className="drawo-ws-setting-row">
                   <span className="label">Total Boards:</span>

@@ -113,7 +113,7 @@ export interface FirebaseConfigData {
 const USER_PROFILE_STORAGE_KEY = "drawo-user-profile-v2";
 const DRAWO_FIREBASE_APP_NAME = "drawo-spark-auth-app";
 
-// Provisioned via firebase-mcp-server for orizyy08@gmail.com (project: drawo-e4ac6)
+// Firebase production credentials for project: drawo-e4ac6
 const DEFAULT_FIREBASE_CONFIG: FirebaseConfigData = {
   projectId: "drawo-e4ac6",
   appId: "1:113505088362:web:9fde3db5ef9a55f3e4eb13",
@@ -317,38 +317,29 @@ export const DrawoAuth = {
    */
   async createWorkspace(
     name: string,
-    includeStarterScenes = true,
+    includeStarterScenes = false,
   ): Promise<DrawoWorkspaceEntry> {
     const profile = this.getProfile();
     const trimmedName = name.trim() || "My Workspace";
     const now = Date.now();
     const wsId = `ws-${createId()}`;
 
-    const currentWsState = DrawoWorkspace.getState();
     const authorName =
-      profile.displayName || profile.email?.split("@")[0] || "Owner";
+      profile.displayName || profile.email?.split("@")[0] || "Me";
 
-    let initialBoards: DrawoBoardMeta[];
-    if (includeStarterScenes && currentWsState.boards.length > 0) {
-      initialBoards = currentWsState.boards.map((b) => ({
-        ...b,
+    const firstBoardId = `board-${createId()}`;
+    const initialBoards: DrawoBoardMeta[] = [
+      {
+        id: firstBoardId,
+        title: "Untitled scene",
+        collectionId: "col-private",
+        isFavorite: false,
         author: authorName,
-      }));
-    } else {
-      const firstBoardId = `board-${createId()}`;
-      initialBoards = [
-        {
-          id: firstBoardId,
-          title: "Untitled scene",
-          collectionId: "col-private",
-          isFavorite: false,
-          author: authorName,
-          elementCount: 0,
-          updatedAt: now,
-          createdAt: now,
-        },
-      ];
-    }
+        elementCount: 0,
+        updatedAt: now,
+        createdAt: now,
+      },
+    ];
 
     const newWs: DrawoWorkspaceEntry = {
       id: wsId,

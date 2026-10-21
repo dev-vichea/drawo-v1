@@ -832,8 +832,8 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                         </div>
                         <div className="drawo-account-email-row__note">
                           Email change is disabled at the moment. Please contact{" "}
-                          <a href="mailto:support@excalidraw.com">
-                            support@excalidraw.com
+                          <a href="mailto:support@drawo.app">
+                            support@drawo.app
                           </a>{" "}
                           for assistance.
                         </div>
@@ -1440,7 +1440,10 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                         {
                           mcpServers: {
                             drawo: {
-                              url: "https://api.drawo.app/api/v1/mcp",
+                              url:
+                                typeof window !== "undefined"
+                                  ? `${window.location.origin}/api/v1/mcp`
+                                  : "https://drawo-v1.vercel.app/api/v1/mcp",
                               headers: {
                                 Authorization: "Bearer <PERSONAL_API_KEY>",
                               },
