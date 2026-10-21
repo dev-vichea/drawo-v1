@@ -283,14 +283,14 @@ export const STICKY_NOTE_BACKGROUND_PICKS = [
 // ORDER matters for positioning in quick picker
 export const DEFAULT_CANVAS_BACKGROUND_PICKS = [
   COLOR_PALETTE.white,
-  // slate mist -> #151719 in dark
-  "#f8fafc",
-  // sky mist -> #151b22 in dark
-  "#f0f7ff",
-  // twilight mist -> #1c1a24 in dark
-  "#f5f3ff",
-  // emerald mist -> #0f1a13 in dark
-  "#f0fdf4",
+  // radix slate2
+  "#f8f9fa",
+  // radix blue2
+  "#f5faff",
+  // radix yellow2
+  "#fffce8",
+  // radix bronze2
+  "#fdf8f6",
 ] as ColorTuple;
 
 // palette defaults

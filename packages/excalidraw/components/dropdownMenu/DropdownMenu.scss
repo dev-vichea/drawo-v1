@@ -58,8 +58,6 @@
 
     .dropdown-menu-container {
       background-color: var(--island-bg-color);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -70,9 +68,8 @@
       max-height: calc(100svh - var(--editor-container-padding) * 2 - 2.25rem);
 
       @at-root .excalidraw.theme--dark#{&} {
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08),
-          0 20px 48px -8px rgba(0, 0, 0, 0.8),
-          0 4px 16px rgba(0, 0, 0, 0.5);
+        box-shadow: var(--box-shadow, var(--shadow-island)),
+          0 0 0 1px rgba(0, 0, 0, 0.15);
       }
     }
 
