@@ -167,10 +167,42 @@
       }
 
       &.is-active {
-        background-color: var(--color-surface-primary-container);
+        background-color: var(--color-primary);
         border-color: var(--color-primary);
-        color: var(--color-primary);
+        color: var(--color-surface-lowest);
         font-weight: 600;
+
+        &:hover {
+          background-color: var(--color-brand-hover);
+          border-color: var(--color-brand-hover);
+        }
+
+        &:active {
+          background-color: var(--color-brand-active);
+          border-color: var(--color-brand-active);
+        }
+
+        .drawo-chip-icon {
+          color: var(--color-surface-lowest);
+
+          svg {
+            stroke: currentColor;
+          }
+        }
+
+        .drawo-chip-badge {
+          background-color: color-mix(in srgb, currentColor 22%, transparent);
+          color: currentColor;
+        }
+
+        .drawo-collection-del {
+          color: currentColor;
+          opacity: 0.8;
+
+          &:hover {
+            opacity: 1;
+          }
+        }
       }
 
       &--new {

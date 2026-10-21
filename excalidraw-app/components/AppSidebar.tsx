@@ -70,13 +70,13 @@ const boardIcon = (
   </svg>
 );
 
-const starIcon = (filled: boolean) => (
+const starIcon = (filled: boolean, color?: string) => (
   <svg
     viewBox="0 0 24 24"
     width="14"
     height="14"
-    fill={filled ? "#f59f00" : "none"}
-    stroke={filled ? "#f59f00" : "currentColor"}
+    fill={filled ? color || "#f59f00" : "none"}
+    stroke={filled ? color || "#f59f00" : color || "currentColor"}
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
@@ -270,7 +270,10 @@ export const AppSidebar: React.FC<{
               onClick={() => setSelectedFilter("favorites")}
             >
               <span className="drawo-chip-icon">
-                {starIcon(selectedFilter === "favorites")}
+                {starIcon(
+                  selectedFilter === "favorites",
+                  selectedFilter === "favorites" ? "currentColor" : undefined,
+                )}
               </span>
               <span>Favorites</span>
             </button>
@@ -284,7 +287,12 @@ export const AppSidebar: React.FC<{
                 }`}
                 onClick={() => setSelectedFilter(col.id)}
               >
-                <span className="drawo-chip-icon" style={{ color: col.color }}>
+                <span
+                  className="drawo-chip-icon"
+                  style={
+                    selectedFilter === col.id ? undefined : { color: col.color }
+                  }
+                >
                   {folderIcon}
                 </span>
                 <span>{col.name}</span>
