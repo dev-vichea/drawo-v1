@@ -698,27 +698,27 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
           {/* TAB 1: MY PROFILE (/account/my-profile)                         */}
           {/* =============================================================== */}
           {activeTab === "my-profile" && (
-            <div className="drawo-account-page">
+            <div className="drawo-account-page drawo-account-page--profile">
               <h1 className="drawo-account-page__title">My profile</h1>
 
-              <div className="drawo-account-sections">
+              <div className="drawo-profile-sections">
                 {/* Profile Picture */}
                 <section
                   id="section-profile-picture"
-                  className={clsx("drawo-account-section", {
+                  className={clsx("drawo-profile-row", {
                     highlighted:
                       highlightedSection === "section-profile-picture",
                   })}
                 >
-                  <div className="drawo-account-section__info">
-                    <h3 className="drawo-account-section__title">
+                  <div className="drawo-profile-row__label">
+                    <h3 className="drawo-profile-row__title">
                       Profile Picture
                     </h3>
-                    <p className="drawo-account-section__desc">
+                    <p className="drawo-profile-row__desc">
                       Upload a profile picture.
                     </p>
                   </div>
-                  <div className="drawo-account-section__body">
+                  <div className="drawo-profile-row__value">
                     <button
                       type="button"
                       className="drawo-profile-avatar-edit"
@@ -744,19 +744,17 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                 {/* Profile Name */}
                 <section
                   id="section-profile-name"
-                  className={clsx("drawo-account-section", {
+                  className={clsx("drawo-profile-row", {
                     highlighted: highlightedSection === "section-profile-name",
                   })}
                 >
-                  <div className="drawo-account-section__info">
-                    <h3 className="drawo-account-section__title">
-                      Profile Name
-                    </h3>
-                    <p className="drawo-account-section__desc">
+                  <div className="drawo-profile-row__label">
+                    <h3 className="drawo-profile-row__title">Profile Name</h3>
+                    <p className="drawo-profile-row__desc">
                       Change your profile name.
                     </p>
                   </div>
-                  <div className="drawo-account-section__body">
+                  <div className="drawo-profile-row__value">
                     <button
                       type="button"
                       className="drawo-profile-name-field"
@@ -802,19 +800,17 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                 {/* Account email */}
                 <section
                   id="section-account-email"
-                  className={clsx("drawo-account-section", {
+                  className={clsx("drawo-profile-row", {
                     highlighted: highlightedSection === "section-account-email",
                   })}
                 >
-                  <div className="drawo-account-section__info">
-                    <h3 className="drawo-account-section__title">
-                      Account email
-                    </h3>
-                    <p className="drawo-account-section__desc">
+                  <div className="drawo-profile-row__label">
+                    <h3 className="drawo-profile-row__title">Account email</h3>
+                    <p className="drawo-profile-row__desc">
                       Change your account email address.
                     </p>
                   </div>
-                  <div className="drawo-account-section__body">
+                  <div className="drawo-profile-row__value">
                     <div className="drawo-account-email-row">
                       <svg
                         className="drawo-account-email-row__icon"
@@ -849,17 +845,17 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                 {/* Linked accounts */}
                 <section
                   id="section-linked-accounts"
-                  className={clsx("drawo-account-section", {
+                  className={clsx("drawo-profile-row", {
                     highlighted:
                       highlightedSection === "section-linked-accounts",
                   })}
                 >
-                  <div className="drawo-account-section__info">
-                    <h3 className="drawo-account-section__title">
+                  <div className="drawo-profile-row__label">
+                    <h3 className="drawo-profile-row__title">
                       Linked accounts
                     </h3>
                   </div>
-                  <div className="drawo-account-section__body">
+                  <div className="drawo-profile-row__value">
                     <div className="drawo-linked-accounts-table">
                       <div className="drawo-linked-accounts-table__head">
                         <span>Email</span>
@@ -886,21 +882,21 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                 {availableProvidersToConnect.length > 0 && (
                   <section
                     id="section-signin-providers"
-                    className={clsx("drawo-account-section", {
+                    className={clsx("drawo-profile-row", {
                       highlighted:
                         highlightedSection === "section-signin-providers",
                     })}
                   >
-                    <div className="drawo-account-section__info">
-                      <h3 className="drawo-account-section__title">
+                    <div className="drawo-profile-row__label">
+                      <h3 className="drawo-profile-row__title">
                         Connect more sign-in providers
                       </h3>
-                      <p className="drawo-account-section__desc">
+                      <p className="drawo-profile-row__desc">
                         You can also link sign-in provider accounts associated
                         with a different email.
                       </p>
                     </div>
-                    <div className="drawo-account-section__body">
+                    <div className="drawo-profile-row__value">
                       <button
                         type="button"
                         className="drawo-account-btn drawo-account-btn--primary"
@@ -915,15 +911,15 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                 {/* Sign out */}
                 <section
                   id="section-sign-out"
-                  className={clsx("drawo-account-section", {
+                  className={clsx("drawo-profile-row", {
                     highlighted: highlightedSection === "section-sign-out",
                   })}
                 >
-                  <div className="drawo-account-section__info">
-                    <h3 className="drawo-account-section__title">Sign out</h3>
-                    <p className="drawo-account-section__desc">Sign out</p>
+                  <div className="drawo-profile-row__label">
+                    <h3 className="drawo-profile-row__title">Sign out</h3>
+                    <p className="drawo-profile-row__desc">Sign out</p>
                   </div>
-                  <div className="drawo-account-section__body drawo-account-btn-group">
+                  <div className="drawo-profile-row__value drawo-account-btn-group">
                     <button
                       type="button"
                       className="drawo-account-btn drawo-account-btn--primary"
@@ -959,21 +955,19 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
 
               <section
                 id="section-delete-account"
-                className={clsx("drawo-account-section", {
+                className={clsx("drawo-profile-row", {
                   highlighted: highlightedSection === "section-delete-account",
                 })}
               >
-                <div className="drawo-account-section__info">
-                  <h3 className="drawo-account-section__title">
-                    Delete account
-                  </h3>
-                  <p className="drawo-account-section__desc">
+                <div className="drawo-profile-row__label">
+                  <h3 className="drawo-profile-row__title">Delete account</h3>
+                  <p className="drawo-profile-row__desc">
                     Deleting your account will permanently erase all your data,
                     settings, and preferences from our system. This action is
                     irreversible.
                   </p>
                 </div>
-                <div className="drawo-account-section__body">
+                <div className="drawo-profile-row__value">
                   {userProfile.workspaces.length > 0 && (
                     <div className="drawo-danger-workspace-box">
                       <h4>Action required</h4>
@@ -1029,39 +1023,44 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                 {/* App theme */}
                 <section
                   id="section-pref-theme"
-                  className={clsx("drawo-account-section", {
-                    highlighted: highlightedSection === "section-pref-theme",
-                  })}
+                  className={clsx(
+                    "drawo-account-section drawo-account-section--row",
+                    {
+                      highlighted: highlightedSection === "section-pref-theme",
+                    },
+                  )}
                 >
-                  <div className="drawo-account-section__info">
+                  <div>
                     <h3 className="drawo-account-section__title">App theme</h3>
                     <p className="drawo-account-section__desc">Alt+Shift+D</p>
                   </div>
-                  <div className="drawo-account-section__body">
-                    <select
-                      className="drawo-account-select"
-                      value={prefs.theme}
-                      onChange={(e) =>
-                        handleThemeChange(
-                          e.target.value as "light" | "dark" | "system",
-                        )
-                      }
-                    >
-                      <option value="dark">Dark</option>
-                      <option value="light">Light</option>
-                      <option value="system">System</option>
-                    </select>
-                  </div>
+                  <select
+                    className="drawo-account-select"
+                    value={prefs.theme}
+                    onChange={(e) =>
+                      handleThemeChange(
+                        e.target.value as "light" | "dark" | "system",
+                      )
+                    }
+                  >
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="system">System</option>
+                  </select>
                 </section>
 
                 {/* Language */}
                 <section
                   id="section-pref-language"
-                  className={clsx("drawo-account-section", {
-                    highlighted: highlightedSection === "section-pref-language",
-                  })}
+                  className={clsx(
+                    "drawo-account-section drawo-account-section--row",
+                    {
+                      highlighted:
+                        highlightedSection === "section-pref-language",
+                    },
+                  )}
                 >
-                  <div className="drawo-account-section__info">
+                  <div>
                     <h3 className="drawo-account-section__title">
                       Language <span className="drawo-account-badge">NEW</span>
                     </h3>
@@ -1069,34 +1068,35 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                       Choose the language used by Drawo.
                     </p>
                   </div>
-                  <div className="drawo-account-section__body">
-                    <select
-                      className="drawo-account-select"
-                      value={selectedLanguage}
-                      onChange={(e) => {
-                        setSelectedLanguage(e.target.value);
-                        showToast("Language preference saved");
-                      }}
-                    >
-                      <option value="en">English</option>
-                      <option value="fr">Français</option>
-                      <option value="de">Deutsch</option>
-                      <option value="es">Español</option>
-                      <option value="ja">日本語</option>
-                      <option value="zh">简体中文</option>
-                    </select>
-                  </div>
+                  <select
+                    className="drawo-account-select"
+                    value={selectedLanguage}
+                    onChange={(e) => {
+                      setSelectedLanguage(e.target.value);
+                      showToast("Language preference saved");
+                    }}
+                  >
+                    <option value="en">English</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                    <option value="es">Español</option>
+                    <option value="ja">日本語</option>
+                    <option value="zh">简体中文</option>
+                  </select>
                 </section>
 
                 {/* Initial app page */}
                 <section
                   id="section-pref-initial-page"
-                  className={clsx("drawo-account-section", {
-                    highlighted:
-                      highlightedSection === "section-pref-initial-page",
-                  })}
+                  className={clsx(
+                    "drawo-account-section drawo-account-section--row",
+                    {
+                      highlighted:
+                        highlightedSection === "section-pref-initial-page",
+                    },
+                  )}
                 >
-                  <div className="drawo-account-section__info">
+                  <div>
                     <h3 className="drawo-account-section__title">
                       Initial app page
                     </h3>
@@ -1104,33 +1104,29 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                       What page to load when you open Drawo
                     </p>
                   </div>
-                  <div className="drawo-account-section__body">
-                    <select
-                      className="drawo-account-select"
-                      value={prefs.initialRedirect}
-                      onChange={(e) => {
-                        DrawoAuth.updatePreferences({
-                          initialRedirect: e.target
-                            .value as DrawoUserPreferences["initialRedirect"],
-                        });
-                        showToast("Initial app page updated");
-                      }}
-                    >
-                      <option value="dashboard">Dashboard</option>
-                      <option value="privateCollection">
-                        Private collection
-                      </option>
-                      <option value="lastEditedScene">Last edited scene</option>
-                      <option value="lastVisitedScene">
-                        Last visited scene
-                      </option>
-                    </select>
-                  </div>
+                  <select
+                    className="drawo-account-select"
+                    value={prefs.initialRedirect}
+                    onChange={(e) => {
+                      DrawoAuth.updatePreferences({
+                        initialRedirect: e.target
+                          .value as DrawoUserPreferences["initialRedirect"],
+                      });
+                      showToast("Initial app page updated");
+                    }}
+                  >
+                    <option value="dashboard">Dashboard</option>
+                    <option value="privateCollection">
+                      Private collection
+                    </option>
+                    <option value="lastEditedScene">Last edited scene</option>
+                    <option value="lastVisitedScene">Last visited scene</option>
+                  </select>
                 </section>
 
                 {/* Auto-redirect */}
-                <section className="drawo-account-section">
-                  <div className="drawo-account-section__info">
+                <section className="drawo-account-section drawo-account-section--row">
+                  <div>
                     <h3 className="drawo-account-section__title">
                       Auto-redirect from excalidraw.com
                     </h3>
@@ -1139,31 +1135,32 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                       auto-redirected to your workspace
                     </p>
                   </div>
-                  <div className="drawo-account-section__body">
-                    <label className="drawo-toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={prefs.autoRedirect}
-                        onChange={() =>
-                          DrawoAuth.updatePreferences({
-                            autoRedirect: !prefs.autoRedirect,
-                          })
-                        }
-                      />
-                      <span className="drawo-toggle-slider" />
-                    </label>
-                  </div>
+                  <label className="drawo-toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={prefs.autoRedirect}
+                      onChange={() =>
+                        DrawoAuth.updatePreferences({
+                          autoRedirect: !prefs.autoRedirect,
+                        })
+                      }
+                    />
+                    <span className="drawo-toggle-slider" />
+                  </label>
                 </section>
 
                 {/* Email notifications */}
                 <section
                   id="section-pref-notifications"
-                  className={clsx("drawo-account-section", {
-                    highlighted:
-                      highlightedSection === "section-pref-notifications",
-                  })}
+                  className={clsx(
+                    "drawo-account-section drawo-account-section--row",
+                    {
+                      highlighted:
+                        highlightedSection === "section-pref-notifications",
+                    },
+                  )}
                 >
-                  <div className="drawo-account-section__info">
+                  <div>
                     <h3 className="drawo-account-section__title">
                       Email notifications
                     </h3>
@@ -1175,30 +1172,31 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                       and mentions.
                     </p>
                   </div>
-                  <div className="drawo-account-section__body">
-                    <label className="drawo-toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={prefs.emailNotifications}
-                        onChange={() =>
-                          DrawoAuth.updatePreferences({
-                            emailNotifications: !prefs.emailNotifications,
-                          })
-                        }
-                      />
-                      <span className="drawo-toggle-slider" />
-                    </label>
-                  </div>
+                  <label className="drawo-toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={prefs.emailNotifications}
+                      onChange={() =>
+                        DrawoAuth.updatePreferences({
+                          emailNotifications: !prefs.emailNotifications,
+                        })
+                      }
+                    />
+                    <span className="drawo-toggle-slider" />
+                  </label>
                 </section>
 
                 {/* AI preferences */}
                 <section
                   id="section-pref-ai"
-                  className={clsx("drawo-account-section", {
-                    highlighted: highlightedSection === "section-pref-ai",
-                  })}
+                  className={clsx(
+                    "drawo-account-section drawo-account-section--row",
+                    {
+                      highlighted: highlightedSection === "section-pref-ai",
+                    },
+                  )}
                 >
-                  <div className="drawo-account-section__info">
+                  <div>
                     <h3 className="drawo-account-section__title">
                       AI preferences for private collections
                     </h3>
@@ -1206,30 +1204,31 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                       Enable automatic scene naming for your private collections
                     </p>
                   </div>
-                  <div className="drawo-account-section__body">
-                    <label className="drawo-toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={prefs.aiSceneNaming}
-                        onChange={() =>
-                          DrawoAuth.updatePreferences({
-                            aiSceneNaming: !prefs.aiSceneNaming,
-                          })
-                        }
-                      />
-                      <span className="drawo-toggle-slider" />
-                    </label>
-                  </div>
+                  <label className="drawo-toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={prefs.aiSceneNaming}
+                      onChange={() =>
+                        DrawoAuth.updatePreferences({
+                          aiSceneNaming: !prefs.aiSceneNaming,
+                        })
+                      }
+                    />
+                    <span className="drawo-toggle-slider" />
+                  </label>
                 </section>
 
                 {/* Show old fonts */}
                 <section
                   id="section-pref-fonts"
-                  className={clsx("drawo-account-section", {
-                    highlighted: highlightedSection === "section-pref-fonts",
-                  })}
+                  className={clsx(
+                    "drawo-account-section drawo-account-section--row",
+                    {
+                      highlighted: highlightedSection === "section-pref-fonts",
+                    },
+                  )}
                 >
-                  <div className="drawo-account-section__info">
+                  <div>
                     <h3 className="drawo-account-section__title">
                       Show old fonts
                     </h3>
@@ -1241,30 +1240,31 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                       which have been replaced or removed from the editor.
                     </p>
                   </div>
-                  <div className="drawo-account-section__body">
-                    <label className="drawo-toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={prefs.showOldFonts}
-                        onChange={() =>
-                          DrawoAuth.updatePreferences({
-                            showOldFonts: !prefs.showOldFonts,
-                          })
-                        }
-                      />
-                      <span className="drawo-toggle-slider" />
-                    </label>
-                  </div>
+                  <label className="drawo-toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={prefs.showOldFonts}
+                      onChange={() =>
+                        DrawoAuth.updatePreferences({
+                          showOldFonts: !prefs.showOldFonts,
+                        })
+                      }
+                    />
+                    <span className="drawo-toggle-slider" />
+                  </label>
                 </section>
 
                 {/* Push to talk */}
                 <section
                   id="section-pref-ptt"
-                  className={clsx("drawo-account-section", {
-                    highlighted: highlightedSection === "section-pref-ptt",
-                  })}
+                  className={clsx(
+                    "drawo-account-section drawo-account-section--row",
+                    {
+                      highlighted: highlightedSection === "section-pref-ptt",
+                    },
+                  )}
                 >
-                  <div className="drawo-account-section__info">
+                  <div>
                     <h3 className="drawo-account-section__title">
                       Push to talk
                     </h3>
@@ -1273,20 +1273,18 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                       speak, release to mute.
                     </p>
                   </div>
-                  <div className="drawo-account-section__body">
-                    <label className="drawo-toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={prefs.pushToTalk}
-                        onChange={() =>
-                          DrawoAuth.updatePreferences({
-                            pushToTalk: !prefs.pushToTalk,
-                          })
-                        }
-                      />
-                      <span className="drawo-toggle-slider" />
-                    </label>
-                  </div>
+                  <label className="drawo-toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={prefs.pushToTalk}
+                      onChange={() =>
+                        DrawoAuth.updatePreferences({
+                          pushToTalk: !prefs.pushToTalk,
+                        })
+                      }
+                    />
+                    <span className="drawo-toggle-slider" />
+                  </label>
                 </section>
               </div>
             </div>
