@@ -27,3 +27,14 @@ dev-dist
 html
 meta*.json
 .claude
+
+# Local dev reference, prototypes & scratch
+/excalidraw-source/
+/exported_scripts/
+/legacy-vanilla/
+/app.js
+/rough.js
+/style.css
+/index.html
+/AGENTS.md
+/CLAUDE.md
