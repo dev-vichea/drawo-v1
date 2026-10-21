@@ -1301,13 +1301,20 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
     <div className="drawo-dashboard-backdrop" onClick={closeToEditor}>
       <div
         className="drawo-dashboard-modal"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          setActiveMenuBoardId(null);
+          setIsWsSwitcherOpen(false);
+        }}
         data-testid="drawo-workspace-dashboard"
       >
         {/* Left Sidebar */}
         <aside className="drawo-dashboard-sidebar">
           {/* Workspace Switcher Header */}
-          <div className="drawo-ws-switcher-wrap">
+          <div
+            className="drawo-ws-switcher-wrap"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div
               className="drawo-ws-header"
               onClick={() => setIsWsSwitcherOpen((prev) => !prev)}
@@ -1675,12 +1682,14 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   {displayBoards.map((board) => {
                     const isActive = board.id === workspace.activeBoardId;
                     const isEditing = editingBoardId === board.id;
+                    const isMenuOpen = activeMenuBoardId === board.id;
 
                     return (
                       <div
                         key={board.id}
                         className={clsx("drawo-scene-card", {
                           "drawo-scene-card--active": isActive,
+                          "drawo-scene-card--menu-open": isMenuOpen,
                         })}
                         onClick={() => handleSelectBoard(board.id)}
                       >
@@ -1811,7 +1820,8 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                                           setActiveMenuBoardId(null);
                                         }}
                                       >
-                                        Rename
+                                        <span className="menu-icon">✎</span>
+                                        <span>Rename</span>
                                       </button>
                                       <button
                                         onClick={() => {
@@ -1827,27 +1837,35 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                                         <span className="menu-icon">
                                           {DuplicateIcon}
                                         </span>
-                                        Duplicate
+                                        <span>Duplicate</span>
                                       </button>
                                       <div className="drawo-menu-divider" />
                                       <div className="drawo-menu-label">
                                         Move to Collection
                                       </div>
-                                      {workspace.collections.map((col) => (
-                                        <button
-                                          key={col.id}
-                                          className="drawo-menu-sub"
-                                          onClick={() => {
-                                            DrawoWorkspace.moveBoardToCollection(
-                                              board.id,
-                                              col.id,
-                                            );
-                                            setActiveMenuBoardId(null);
-                                          }}
-                                        >
-                                          {col.icon || "📁"} {col.name}
-                                        </button>
-                                      ))}
+                                      <div className="drawo-menu-collections-scroll">
+                                        {workspace.collections.map((col) => (
+                                          <button
+                                            key={col.id}
+                                            className={clsx("drawo-menu-sub", {
+                                              active:
+                                                board.collectionId === col.id,
+                                            })}
+                                            onClick={() => {
+                                              DrawoWorkspace.moveBoardToCollection(
+                                                board.id,
+                                                col.id,
+                                              );
+                                              setActiveMenuBoardId(null);
+                                            }}
+                                          >
+                                            <span className="menu-col-icon">
+                                              {col.icon || "📁"}
+                                            </span>
+                                            <span>{col.name}</span>
+                                          </button>
+                                        ))}
+                                      </div>
                                       <div className="drawo-menu-divider" />
                                       <button
                                         className="danger"
@@ -1859,7 +1877,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                                         <span className="menu-icon">
                                           {TrashIcon}
                                         </span>
-                                        Move to Trash
+                                        <span>Move to Trash</span>
                                       </button>
                                     </>
                                   )}
