@@ -1,4 +1,4 @@
-import { initializeApp, getApps, deleteApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import {
   getAuth,
   GoogleAuthProvider,
@@ -30,12 +30,28 @@ import {
   DrawoWorkspace,
   drawoWorkspaceAtom,
   workspaceBoardsStore,
+  DEFAULT_COLLECTIONS,
 } from "./DrawoWorkspace";
 
 import type { User } from "firebase/auth";
 import type { FirebaseApp } from "firebase/app";
 
-import type { DrawoBoardScene, DrawoWorkspaceState } from "./DrawoWorkspace";
+import type {
+  DrawoBoardMeta,
+  DrawoBoardScene,
+  DrawoCollection,
+  DrawoWorkspaceState,
+} from "./DrawoWorkspace";
+
+export interface DrawoWorkspaceEntry {
+  id: string;
+  name: string;
+  icon?: string;
+  createdAt: number;
+  boards: DrawoBoardMeta[];
+  collections: DrawoCollection[];
+  activeBoardId: string;
+}
 
 export interface DrawoUserProfile {
   uid: string;
@@ -43,11 +59,12 @@ export interface DrawoUserProfile {
   email: string;
   avatar: string;
   photoURL?: string | null;
-  workspaceName: string;
   role: string;
   provider: "local" | "google" | "github" | "email";
   isCloudAuthenticated: boolean;
-  firebaseProjectId?: string;
+  authLoading?: boolean;
+  workspaces: DrawoWorkspaceEntry[];
+  activeWorkspaceId: string | null;
   lastSyncedAt?: number | null;
 }
 
@@ -60,30 +77,24 @@ export interface FirebaseConfigData {
   appId?: string;
 }
 
-const USER_PROFILE_STORAGE_KEY = "drawo-user-profile-v1";
-const CUSTOM_FIREBASE_CONFIG_KEY = "drawo-firebase-config-v1";
+const USER_PROFILE_STORAGE_KEY = "drawo-user-profile-v2";
 const DRAWO_FIREBASE_APP_NAME = "drawo-spark-auth-app";
 
-const DEFAULT_PROJECT_ID = "drawo-e4ac6";
+// Provisioned via firebase-mcp-server for vicheachheng001@gmail.com
+const DEFAULT_FIREBASE_CONFIG: FirebaseConfigData = {
+  projectId: "drawo-plus-app",
+  appId: "1:991079515616:web:75365a2b967fbe2eaad785",
+  storageBucket: "drawo-plus-app.firebasestorage.app",
+  apiKey: "AIzaSyAJUc-Q0WpYwvSbKBCz1DX8dYycVqfxjpY",
+  authDomain: "drawo-plus-app.firebaseapp.com",
+  messagingSenderId: "991079515616",
+};
 
-const loadSavedFirebaseConfig = (): FirebaseConfigData | null => {
-  try {
-    const saved = localStorage.getItem(CUSTOM_FIREBASE_CONFIG_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.apiKey && parsed.projectId) {
-        return parsed;
-      }
-    }
-  } catch {
-    // ignore
-  }
-
+const getActiveFirebaseConfig = (): FirebaseConfigData => {
   try {
     const envRaw = import.meta.env.VITE_APP_FIREBASE_CONFIG;
     if (envRaw) {
       const parsed = JSON.parse(envRaw);
-      // Only use env config if it's not the OSS placeholder project
       if (
         parsed &&
         parsed.apiKey &&
@@ -94,91 +105,27 @@ const loadSavedFirebaseConfig = (): FirebaseConfigData | null => {
       }
     }
   } catch {
-    // ignore
+    // fallback to DEFAULT_FIREBASE_CONFIG
   }
-
-  return null;
+  return DEFAULT_FIREBASE_CONFIG;
 };
 
-/**
- * Parses either:
- * 1. Full JS snippet from Firebase Console (`const firebaseConfig = { apiKey: "...", ... }`)
- * 2. JSON object (`{"apiKey": "...", ...}`)
- * 3. Just the raw `AIza...` apiKey string (auto-fills `drawo-e4ac6` project defaults)
- */
-export const parseFirebaseConfigInput = (
-  rawInput: string,
-  defaultProjectId = DEFAULT_PROJECT_ID,
-): FirebaseConfigData | null => {
-  const trimmed = rawInput.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  // Case 1: Raw API key starting with AIza
-  if (/^AIza[0-9A-Za-z-_]{30,}$/.test(trimmed)) {
-    return {
-      apiKey: trimmed,
-      authDomain: `${defaultProjectId}.firebaseapp.com`,
-      projectId: defaultProjectId,
-      storageBucket: `${defaultProjectId}.firebasestorage.app`,
-    };
-  }
-
-  // Case 2: Try strict JSON parse
-  try {
-    const parsed = JSON.parse(trimmed);
-    if (parsed && parsed.apiKey) {
-      const pid = parsed.projectId || defaultProjectId;
-      return {
-        apiKey: parsed.apiKey,
-        authDomain: parsed.authDomain || `${pid}.firebaseapp.com`,
-        projectId: pid,
-        storageBucket: parsed.storageBucket || `${pid}.firebasestorage.app`,
-        messagingSenderId: parsed.messagingSenderId,
-        appId: parsed.appId,
-      };
-    }
-  } catch {
-    // Continue to regex extraction for JS object literal
-  }
-
-  // Case 3: Extract key-value pairs from Firebase Console JS snippet
-  const extractField = (key: string): string | undefined => {
-    const regex = new RegExp(`["']?${key}["']?\\s*:\\s*["']([^"']+)["']`);
-    const match = trimmed.match(regex);
-    return match?.[1];
-  };
-
-  const apiKey = extractField("apiKey");
-  if (!apiKey) {
-    return null;
-  }
-
-  const projectId = extractField("projectId") || defaultProjectId;
-  return {
-    apiKey,
-    authDomain: extractField("authDomain") || `${projectId}.firebaseapp.com`,
-    projectId,
-    storageBucket:
-      extractField("storageBucket") || `${projectId}.firebasestorage.app`,
-    messagingSenderId: extractField("messagingSenderId"),
-    appId: extractField("appId"),
-  };
-};
+const createId = () =>
+  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 const loadInitialUserProfile = (): DrawoUserProfile => {
   const collabName = importUsernameFromLocalStorage();
-  const fbConfig = loadSavedFirebaseConfig();
 
   try {
     const raw = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as DrawoUserProfile;
-      if (parsed && parsed.displayName) {
+      if (parsed && typeof parsed === "object") {
         return {
           ...parsed,
-          firebaseProjectId: fbConfig?.projectId || DEFAULT_PROJECT_ID,
+          workspaces: Array.isArray(parsed.workspaces) ? parsed.workspaces : [],
+          activeWorkspaceId: parsed.activeWorkspaceId || null,
+          authLoading: false,
         };
       }
     }
@@ -187,16 +134,17 @@ const loadInitialUserProfile = (): DrawoUserProfile => {
   }
 
   return {
-    uid: "local-owner",
-    displayName: collabName || "Torvalds Unix",
-    email: "torvalds@drawo.local",
+    uid: "",
+    displayName: collabName || "Drawo User",
+    email: "",
     avatar: "🐧",
     photoURL: null,
-    workspaceName: "drawo",
-    role: "Workspace Owner • Admin",
+    role: "Workspace Owner",
     provider: "local",
     isCloudAuthenticated: false,
-    firebaseProjectId: fbConfig?.projectId || DEFAULT_PROJECT_ID,
+    authLoading: true,
+    workspaces: [],
+    activeWorkspaceId: null,
     lastSyncedAt: null,
   };
 };
@@ -213,30 +161,19 @@ const saveUserProfile = (profile: DrawoUserProfile) => {
 };
 
 export const drawoAuthAtom = atom<DrawoUserProfile>(loadInitialUserProfile());
-export const isAuthModalOpenAtom = atom<boolean>(false);
 
 let drawoFirebaseApp: FirebaseApp | null = null;
 let authUnsubscribe: (() => void) | null = null;
 
-const getOrInitDrawoFirebaseApp = (): FirebaseApp | null => {
-  const config = loadSavedFirebaseConfig();
-  if (!config || !config.apiKey) {
-    return null;
-  }
-
+const getOrInitDrawoFirebaseApp = (): FirebaseApp => {
   const existing = getApps().find((a) => a.name === DRAWO_FIREBASE_APP_NAME);
   if (existing) {
     drawoFirebaseApp = existing;
     return existing;
   }
-
-  try {
-    drawoFirebaseApp = initializeApp(config, DRAWO_FIREBASE_APP_NAME);
-    return drawoFirebaseApp;
-  } catch (err) {
-    console.error("Failed to initialize Drawo Firebase Spark app:", err);
-    return null;
-  }
+  const config = getActiveFirebaseConfig();
+  drawoFirebaseApp = initializeApp(config, DRAWO_FIREBASE_APP_NAME);
+  return drawoFirebaseApp;
 };
 
 const mapFirebaseUserToProfile = (
@@ -252,9 +189,25 @@ const mapFirebaseUserToProfile = (
 
   const displayName =
     user.displayName ||
-    user.email?.split("@")[0] ||
     existing.displayName ||
+    user.email?.split("@")[0] ||
     "Drawo User";
+
+  // Load any saved workspaces for this specific user uid
+  let userWorkspaces = existing.workspaces;
+  let activeWsId = existing.activeWorkspaceId;
+  try {
+    const perUserRaw = localStorage.getItem(`drawo-workspaces-${user.uid}`);
+    if (perUserRaw) {
+      const parsed = JSON.parse(perUserRaw);
+      if (Array.isArray(parsed.workspaces)) {
+        userWorkspaces = parsed.workspaces;
+        activeWsId = parsed.activeWorkspaceId || userWorkspaces[0]?.id || null;
+      }
+    }
+  } catch {
+    // ignore
+  }
 
   return {
     ...existing,
@@ -264,9 +217,27 @@ const mapFirebaseUserToProfile = (
     photoURL: user.photoURL || null,
     provider,
     isCloudAuthenticated: true,
-    firebaseProjectId:
-      loadSavedFirebaseConfig()?.projectId || DEFAULT_PROJECT_ID,
+    authLoading: false,
+    workspaces: userWorkspaces,
+    activeWorkspaceId: activeWsId,
   };
+};
+
+const persistUserWorkspaces = (profile: DrawoUserProfile) => {
+  saveUserProfile(profile);
+  if (profile.uid) {
+    try {
+      localStorage.setItem(
+        `drawo-workspaces-${profile.uid}`,
+        JSON.stringify({
+          workspaces: profile.workspaces,
+          activeWorkspaceId: profile.activeWorkspaceId,
+        }),
+      );
+    } catch {
+      // ignore
+    }
+  }
 };
 
 export const DrawoAuth = {
@@ -274,95 +245,31 @@ export const DrawoAuth = {
     return appJotaiStore.get(drawoAuthAtom);
   },
 
-  getFirebaseConfig(): FirebaseConfigData | null {
-    return loadSavedFirebaseConfig();
-  },
-
-  isFirebaseConfigured(): boolean {
-    const cfg = loadSavedFirebaseConfig();
-    return Boolean(cfg && cfg.apiKey && cfg.projectId);
-  },
-
-  async saveFirebaseConfig(configInput: string): Promise<FirebaseConfigData> {
-    const parsed = parseFirebaseConfigInput(configInput);
-    if (!parsed) {
-      throw new Error(
-        "Could not parse Firebase config. Paste the firebaseConfig object from Firebase Console or your AIza... apiKey.",
-      );
-    }
-
-    localStorage.setItem(CUSTOM_FIREBASE_CONFIG_KEY, JSON.stringify(parsed));
-
-    // Re-initialize app if already created
-    const existing = getApps().find((a) => a.name === DRAWO_FIREBASE_APP_NAME);
-    if (existing) {
-      if (authUnsubscribe) {
-        authUnsubscribe();
-        authUnsubscribe = null;
-      }
-      await deleteApp(existing);
-      drawoFirebaseApp = null;
-    }
-
-    this.initAuthListener();
-
-    const current = this.getProfile();
-    const updated: DrawoUserProfile = {
-      ...current,
-      firebaseProjectId: parsed.projectId,
-    };
-    saveUserProfile(updated);
-    appJotaiStore.set(drawoAuthAtom, updated);
-
-    return parsed;
-  },
-
-  async clearFirebaseConfig(): Promise<void> {
-    localStorage.removeItem(CUSTOM_FIREBASE_CONFIG_KEY);
-    const existing = getApps().find((a) => a.name === DRAWO_FIREBASE_APP_NAME);
-    if (existing) {
-      if (authUnsubscribe) {
-        authUnsubscribe();
-        authUnsubscribe = null;
-      }
-      await deleteApp(existing);
-      drawoFirebaseApp = null;
-    }
-    const current = this.getProfile();
-    const next: DrawoUserProfile = {
-      ...current,
-      provider: "local",
-      isCloudAuthenticated: false,
-      photoURL: null,
-    };
-    saveUserProfile(next);
-    appJotaiStore.set(drawoAuthAtom, next);
-  },
-
   initAuthListener(): void {
-    const app = getOrInitDrawoFirebaseApp();
-    if (!app || authUnsubscribe) {
+    if (authUnsubscribe) {
       return;
     }
 
     try {
+      const app = getOrInitDrawoFirebaseApp();
       const auth = getAuth(app);
       authUnsubscribe = onAuthStateChanged(auth, async (user) => {
         const current = this.getProfile();
         if (user) {
           const next = mapFirebaseUserToProfile(user, current);
-          saveUserProfile(next);
+          persistUserWorkspaces(next);
           appJotaiStore.set(drawoAuthAtom, next);
-          // Pull cloud workspace on login
-          await this.pullWorkspaceFromCloud().catch(() => {
-            // Firestore might not be enabled yet; ignore silently
-          });
-        } else if (current.isCloudAuthenticated) {
+
+          // Sync workspaces from Cloud Firestore
+          await this.pullWorkspacesFromCloud(user.uid).catch(() => {});
+        } else {
           const next: DrawoUserProfile = {
             ...current,
-            uid: "local-owner",
+            uid: "",
+            email: "",
             provider: "local",
             isCloudAuthenticated: false,
+            authLoading: false,
             photoURL: null,
           };
           saveUserProfile(next);
@@ -370,54 +277,156 @@ export const DrawoAuth = {
         }
       });
     } catch (err) {
-      console.warn("Firebase Auth listener setup skipped:", err);
+      console.warn("Firebase Auth listener error:", err);
+      const current = this.getProfile();
+      appJotaiStore.set(drawoAuthAtom, { ...current, authLoading: false });
     }
   },
 
-  updateLocalProfile(
-    updates: Partial<
-      Pick<
-        DrawoUserProfile,
-        "displayName" | "email" | "avatar" | "workspaceName" | "role"
-      >
-    >,
-  ): DrawoUserProfile {
-    const current = this.getProfile();
-    const oldName = current.displayName;
-    const next: DrawoUserProfile = {
-      ...current,
-      ...updates,
-      displayName: updates.displayName?.trim() || current.displayName,
-      workspaceName: updates.workspaceName?.trim() || current.workspaceName,
-    };
+  /**
+   * Creates a new Workspace for the signed-in user and activates it.
+   */
+  async createWorkspace(
+    name: string,
+    includeStarterScenes = true,
+  ): Promise<DrawoWorkspaceEntry> {
+    const profile = this.getProfile();
+    const trimmedName = name.trim() || "My Workspace";
+    const now = Date.now();
+    const wsId = `ws-${createId()}`;
 
-    saveUserProfile(next);
-    appJotaiStore.set(drawoAuthAtom, next);
+    const currentWsState = DrawoWorkspace.getState();
+    const authorName =
+      profile.displayName || profile.email?.split("@")[0] || "Owner";
 
-    // Also update Firebase Auth profile if signed in
-    const app = getOrInitDrawoFirebaseApp();
-    if (app && next.isCloudAuthenticated && updates.displayName) {
-      const auth = getAuth(app);
-      if (auth.currentUser) {
-        updateProfile(auth.currentUser, {
-          displayName: next.displayName,
-        }).catch(() => {});
-      }
+    let initialBoards: DrawoBoardMeta[];
+    if (includeStarterScenes && currentWsState.boards.length > 0) {
+      initialBoards = currentWsState.boards.map((b) => ({
+        ...b,
+        author: authorName,
+      }));
+    } else {
+      const firstBoardId = `board-${createId()}`;
+      initialBoards = [
+        {
+          id: firstBoardId,
+          title: "Untitled scene",
+          collectionId: "col-private",
+          isFavorite: false,
+          author: authorName,
+          elementCount: 0,
+          updatedAt: now,
+          createdAt: now,
+        },
+      ];
     }
 
-    // Update author attribution on boards owned by the user
-    if (updates.displayName && updates.displayName.trim() !== oldName) {
-      const ws = DrawoWorkspace.getState();
-      const updatedBoards = ws.boards.map((b) =>
-        !b.author || b.author === oldName || b.author === "Torvalds Unix"
-          ? { ...b, author: next.displayName }
-          : b,
-      );
-      const nextWs: DrawoWorkspaceState = {
-        ...ws,
-        boards: updatedBoards,
-      };
-      appJotaiStore.set(drawoWorkspaceAtom, nextWs);
+    const newWs: DrawoWorkspaceEntry = {
+      id: wsId,
+      name: trimmedName,
+      createdAt: now,
+      boards: initialBoards,
+      collections: [...DEFAULT_COLLECTIONS],
+      activeBoardId: initialBoards[0].id,
+    };
+
+    const nextWorkspaces = [...profile.workspaces, newWs];
+    const nextProfile: DrawoUserProfile = {
+      ...profile,
+      workspaces: nextWorkspaces,
+      activeWorkspaceId: newWs.id,
+    };
+
+    persistUserWorkspaces(nextProfile);
+    appJotaiStore.set(drawoAuthAtom, nextProfile);
+
+    // Sync active workspace into DrawoWorkspace state
+    const nextWsState: DrawoWorkspaceState = {
+      activeBoardId: newWs.activeBoardId,
+      boards: newWs.boards,
+      collections: newWs.collections,
+    };
+    appJotaiStore.set(drawoWorkspaceAtom, nextWsState);
+    localStorage.setItem(
+      "drawo-workspace-meta-v1",
+      JSON.stringify(nextWsState),
+    );
+
+    // Persist to Cloud Firestore if authenticated
+    if (nextProfile.isCloudAuthenticated && nextProfile.uid) {
+      await this.syncWorkspacesToCloud().catch(() => {});
+    }
+
+    return newWs;
+  },
+
+  /**
+   * Switches between the user's created Workspaces.
+   */
+  switchWorkspace(workspaceId: string): void {
+    const profile = this.getProfile();
+    const currentWsState = DrawoWorkspace.getState();
+
+    // Save current workspace boards/collections back into the active workspace entry
+    const updatedWorkspaces = profile.workspaces.map((ws) =>
+      ws.id === profile.activeWorkspaceId
+        ? {
+            ...ws,
+            boards: currentWsState.boards,
+            collections: currentWsState.collections,
+            activeBoardId: currentWsState.activeBoardId,
+          }
+        : ws,
+    );
+
+    const target = updatedWorkspaces.find((ws) => ws.id === workspaceId);
+    if (!target) {
+      return;
+    }
+
+    const nextProfile: DrawoUserProfile = {
+      ...profile,
+      workspaces: updatedWorkspaces,
+      activeWorkspaceId: target.id,
+    };
+    persistUserWorkspaces(nextProfile);
+    appJotaiStore.set(drawoAuthAtom, nextProfile);
+
+    const nextWsState: DrawoWorkspaceState = {
+      activeBoardId: target.activeBoardId,
+      boards: target.boards,
+      collections: target.collections,
+    };
+    appJotaiStore.set(drawoWorkspaceAtom, nextWsState);
+    localStorage.setItem(
+      "drawo-workspace-meta-v1",
+      JSON.stringify(nextWsState),
+    );
+  },
+
+  /**
+   * Updates user display name & avatar and syncs with Firebase Auth + Collab.
+   */
+  updateUserProfile(updates: {
+    displayName?: string;
+    avatar?: string;
+  }): DrawoUserProfile {
+    const current = this.getProfile();
+    const next: DrawoUserProfile = {
+      ...current,
+      displayName: updates.displayName?.trim() || current.displayName,
+      avatar: updates.avatar || current.avatar,
+    };
+
+    persistUserWorkspaces(next);
+    appJotaiStore.set(drawoAuthAtom, next);
+
+    const app = getOrInitDrawoFirebaseApp();
+    const auth = getAuth(app);
+    if (auth.currentUser && updates.displayName) {
+      updateProfile(auth.currentUser, {
+        displayName: next.displayName,
+      }).catch(() => {});
     }
 
     return next;
@@ -425,32 +434,26 @@ export const DrawoAuth = {
 
   async signInWithGoogle(): Promise<DrawoUserProfile> {
     const app = getOrInitDrawoFirebaseApp();
-    if (!app) {
-      throw new Error("Please configure your Firebase Spark API key first.");
-    }
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     const cred = await signInWithPopup(auth, provider);
     const next = mapFirebaseUserToProfile(cred.user, this.getProfile());
-    saveUserProfile(next);
+    persistUserWorkspaces(next);
     appJotaiStore.set(drawoAuthAtom, next);
-    await this.syncWorkspaceToCloud().catch(() => {});
-    return next;
+    await this.pullWorkspacesFromCloud(cred.user.uid).catch(() => {});
+    return this.getProfile();
   },
 
   async signInWithGithub(): Promise<DrawoUserProfile> {
     const app = getOrInitDrawoFirebaseApp();
-    if (!app) {
-      throw new Error("Please configure your Firebase Spark API key first.");
-    }
     const auth = getAuth(app);
     const provider = new GithubAuthProvider();
     const cred = await signInWithPopup(auth, provider);
     const next = mapFirebaseUserToProfile(cred.user, this.getProfile());
-    saveUserProfile(next);
+    persistUserWorkspaces(next);
     appJotaiStore.set(drawoAuthAtom, next);
-    await this.syncWorkspaceToCloud().catch(() => {});
-    return next;
+    await this.pullWorkspacesFromCloud(cred.user.uid).catch(() => {});
+    return this.getProfile();
   },
 
   async signInWithEmail(
@@ -458,16 +461,13 @@ export const DrawoAuth = {
     password: string,
   ): Promise<DrawoUserProfile> {
     const app = getOrInitDrawoFirebaseApp();
-    if (!app) {
-      throw new Error("Please configure your Firebase Spark API key first.");
-    }
     const auth = getAuth(app);
     const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
     const next = mapFirebaseUserToProfile(cred.user, this.getProfile());
-    saveUserProfile(next);
+    persistUserWorkspaces(next);
     appJotaiStore.set(drawoAuthAtom, next);
-    await this.pullWorkspaceFromCloud().catch(() => {});
-    return next;
+    await this.pullWorkspacesFromCloud(cred.user.uid).catch(() => {});
+    return this.getProfile();
   },
 
   async signUpWithEmail(
@@ -476,9 +476,6 @@ export const DrawoAuth = {
     displayName: string,
   ): Promise<DrawoUserProfile> {
     const app = getOrInitDrawoFirebaseApp();
-    if (!app) {
-      throw new Error("Please configure your Firebase Spark API key first.");
-    }
     const auth = getAuth(app);
     const cred = await createUserWithEmailAndPassword(
       auth,
@@ -490,24 +487,25 @@ export const DrawoAuth = {
     }
     const next = mapFirebaseUserToProfile(cred.user, {
       ...this.getProfile(),
-      displayName: displayName.trim() || this.getProfile().displayName,
+      displayName: displayName.trim() || email.split("@")[0],
+      workspaces: [],
+      activeWorkspaceId: null,
     });
-    saveUserProfile(next);
+    persistUserWorkspaces(next);
     appJotaiStore.set(drawoAuthAtom, next);
-    await this.syncWorkspaceToCloud().catch(() => {});
     return next;
   },
 
   async signOut(): Promise<void> {
     const app = getOrInitDrawoFirebaseApp();
-    if (app) {
-      const auth = getAuth(app);
-      await signOut(auth).catch(() => {});
-    }
+    const auth = getAuth(app);
+    await signOut(auth).catch(() => {});
+
     const current = this.getProfile();
     const next: DrawoUserProfile = {
       ...current,
-      uid: "local-owner",
+      uid: "",
+      email: "",
       provider: "local",
       isCloudAuthenticated: false,
       photoURL: null,
@@ -516,38 +514,45 @@ export const DrawoAuth = {
     appJotaiStore.set(drawoAuthAtom, next);
   },
 
-  /**
-   * Syncs workspace metadata and board scenes to Cloud Firestore (100% Spark Free Tier).
-   */
-  async syncWorkspaceToCloud(): Promise<void> {
+  async syncWorkspacesToCloud(): Promise<void> {
     const app = getOrInitDrawoFirebaseApp();
     const profile = this.getProfile();
-    if (!app || !profile.isCloudAuthenticated || !profile.uid) {
-      throw new Error(
-        "Sign in with Firebase first to sync to Cloud Firestore.",
-      );
+    if (!profile.isCloudAuthenticated || !profile.uid) {
+      return;
     }
 
-    const db = getFirestore(app);
-    const ws = DrawoWorkspace.getState();
-    const now = Date.now();
+    // Ensure latest active DrawoWorkspace state is synced into profile.workspaces
+    const currentWsState = DrawoWorkspace.getState();
+    const updatedWorkspaces = profile.workspaces.map((ws) =>
+      ws.id === profile.activeWorkspaceId
+        ? {
+            ...ws,
+            boards: currentWsState.boards,
+            collections: currentWsState.collections,
+            activeBoardId: currentWsState.activeBoardId,
+          }
+        : ws,
+    );
 
-    // 1. Save workspace metadata document
-    const metaRef = doc(db, "users", profile.uid, "workspace", "meta");
+    const db = getFirestore(app);
+    const now = Date.now();
+    const userDocRef = doc(db, "users", profile.uid);
     await setDoc(
-      metaRef,
+      userDocRef,
       {
-        activeBoardId: ws.activeBoardId,
-        boards: ws.boards,
-        collections: ws.collections,
-        workspaceName: profile.workspaceName,
+        uid: profile.uid,
+        displayName: profile.displayName,
+        email: profile.email,
+        avatar: profile.avatar,
+        activeWorkspaceId: profile.activeWorkspaceId,
+        workspaces: updatedWorkspaces,
         updatedAt: now,
       },
       { merge: true },
     );
 
-    // 2. Save board scenes (up to 15 most recent boards to stay conservative on daily Spark writes)
-    const boardsToSync = [...ws.boards]
+    // Sync active workspace board scenes
+    const boardsToSync = [...currentWsState.boards]
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .slice(0, 15);
 
@@ -567,35 +572,26 @@ export const DrawoAuth = {
 
     const nextProfile: DrawoUserProfile = {
       ...profile,
+      workspaces: updatedWorkspaces,
       lastSyncedAt: now,
     };
-    saveUserProfile(nextProfile);
+    persistUserWorkspaces(nextProfile);
     appJotaiStore.set(drawoAuthAtom, nextProfile);
   },
 
-  /**
-   * Pulls workspace metadata and board scenes from Cloud Firestore into local IndexedDB.
-   */
-  async pullWorkspaceFromCloud(): Promise<boolean> {
+  async pullWorkspacesFromCloud(uid: string): Promise<void> {
     const app = getOrInitDrawoFirebaseApp();
-    const profile = this.getProfile();
-    if (!app || !profile.isCloudAuthenticated || !profile.uid) {
-      return false;
-    }
-
     const db = getFirestore(app);
-    const metaRef = doc(db, "users", profile.uid, "workspace", "meta");
-    const snap = await getDoc(metaRef);
+    const userDocRef = doc(db, "users", uid);
+    const snap = await getDoc(userDocRef);
 
     if (!snap.exists()) {
-      // First login: push local workspace to cloud
-      await this.syncWorkspaceToCloud();
-      return true;
+      return;
     }
 
-    const cloudData = snap.data();
-    if (cloudData && Array.isArray(cloudData.boards)) {
-      const boardsCol = collection(db, "users", profile.uid, "boards");
+    const data = snap.data();
+    if (data && Array.isArray(data.workspaces) && data.workspaces.length > 0) {
+      const boardsCol = collection(db, "users", uid, "boards");
       const boardSnaps = await getDocs(boardsCol);
       for (const bDoc of boardSnaps.docs) {
         const bData = bDoc.data();
@@ -613,39 +609,36 @@ export const DrawoAuth = {
               workspaceBoardsStore,
             );
           } catch {
-            // ignore malformed JSON
+            // ignore
           }
         }
       }
 
-      const currentWs = DrawoWorkspace.getState();
-      const mergedBoards = [...cloudData.boards];
-      for (const localBoard of currentWs.boards) {
-        if (!mergedBoards.some((b: any) => b.id === localBoard.id)) {
-          mergedBoards.push(localBoard);
-        }
-      }
-
-      const nextWs: DrawoWorkspaceState = {
-        activeBoardId: cloudData.activeBoardId || currentWs.activeBoardId,
-        boards: mergedBoards,
-        collections: Array.isArray(cloudData.collections)
-          ? cloudData.collections
-          : currentWs.collections,
-      };
-      appJotaiStore.set(drawoWorkspaceAtom, nextWs);
-      localStorage.setItem("drawo-workspace-meta-v1", JSON.stringify(nextWs));
+      const current = this.getProfile();
+      const activeWsId = data.activeWorkspaceId || data.workspaces[0].id;
+      const activeWs: DrawoWorkspaceEntry =
+        data.workspaces.find((w: any) => w.id === activeWsId) ||
+        data.workspaces[0];
 
       const nextProfile: DrawoUserProfile = {
-        ...profile,
-        workspaceName: cloudData.workspaceName || profile.workspaceName,
+        ...current,
+        workspaces: data.workspaces,
+        activeWorkspaceId: activeWs.id,
         lastSyncedAt: Date.now(),
       };
-      saveUserProfile(nextProfile);
+      persistUserWorkspaces(nextProfile);
       appJotaiStore.set(drawoAuthAtom, nextProfile);
-      return true;
-    }
 
-    return false;
+      const nextWsState: DrawoWorkspaceState = {
+        activeBoardId: activeWs.activeBoardId,
+        boards: activeWs.boards,
+        collections: activeWs.collections || DEFAULT_COLLECTIONS,
+      };
+      appJotaiStore.set(drawoWorkspaceAtom, nextWsState);
+      localStorage.setItem(
+        "drawo-workspace-meta-v1",
+        JSON.stringify(nextWsState),
+      );
+    }
   },
 };

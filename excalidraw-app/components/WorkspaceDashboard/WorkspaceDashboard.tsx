@@ -44,81 +44,70 @@ interface WorkspaceDashboardProps {
 export const formatRelativeTime = (timestamp: number): string => {
   const now = Date.now();
   const diffMs = Math.max(0, now - timestamp);
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-  const diffMonth = Math.floor(diffDay / 30);
-  const diffYear = Math.floor(diffDay / 365);
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffMonths = Math.floor(diffDays / 30);
+  const diffYears = Math.floor(diffDays / 365);
 
-  if (diffSec < 60) {
+  if (diffMins < 1) {
     return "Just now";
   }
-  if (diffMin < 60) {
-    return `${diffMin}m ago`;
+  if (diffMins < 60) {
+    return `${diffMins}m ago`;
   }
-  if (diffHour < 24) {
-    return `${diffHour}h ago`;
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
   }
-  if (diffDay === 1) {
-    return "Yesterday";
+  if (diffDays < 30) {
+    return `${diffDays}d ago`;
   }
-  if (diffDay < 30) {
-    return `${diffDay}d ago`;
+  if (diffMonths < 12) {
+    return `${diffMonths} month${diffMonths > 1 ? "s" : ""} ago`;
   }
-  if (diffMonth === 1) {
-    return "1 month ago";
-  }
-  if (diffMonth < 12) {
-    return `${diffMonth} months ago`;
-  }
-  if (diffYear === 1) {
-    return "a year ago";
-  }
-  return `${diffYear} years ago`;
+  return `${diffYears === 1 ? "a" : diffYears} year${
+    diffYears > 1 ? "s" : ""
+  } ago`;
 };
 
-// Global memory cache for rendered thumbnails to avoid lag
 const thumbnailSvgCache = new Map<string, string>();
 
-interface BoardThumbnailProps {
+/**
+ * Dynamic board thumbnail component that generates a live SVG preview
+ * from the board's real Excalidraw elements stored in IndexedDB.
+ */
+const BoardThumbnail: React.FC<{
   board: DrawoBoardMeta;
   isActive: boolean;
   excalidrawAPI: ExcalidrawImperativeAPI | null;
-}
-
-const BoardThumbnail: React.FC<BoardThumbnailProps> = ({
-  board,
-  isActive,
-  excalidrawAPI,
-}) => {
+}> = ({ board, isActive, excalidrawAPI }) => {
   const [svgHtml, setSvgHtml] = useState<string | null>(() => {
-    return thumbnailSvgCache.get(board.id) || null;
+    return thumbnailSvgCache.get(board.id) || board.previewSvg || null;
   });
-  const [loading, setLoading] = useState<boolean>(!svgHtml);
 
   useEffect(() => {
-    let cancelled = false;
+    let isMounted = true;
 
-    async function generateSvg() {
+    const generatePreview = async () => {
       try {
         let elements: readonly ExcalidrawElement[] = [];
 
         if (isActive && excalidrawAPI) {
           elements = excalidrawAPI.getSceneElements();
         } else {
-          const scene = await get<DrawoBoardScene>(
+          const saved = await get<DrawoBoardScene>(
             board.id,
             workspaceBoardsStore,
           );
-          elements = scene?.elements || [];
+          if (saved && Array.isArray(saved.elements)) {
+            elements = saved.elements;
+          }
         }
 
         const nonDeleted = getNonDeletedElements(elements);
-        if (nonDeleted.length === 0) {
-          if (!cancelled) {
+        if (!nonDeleted || nonDeleted.length === 0) {
+          if (isMounted) {
             setSvgHtml(null);
-            setLoading(false);
           }
           return;
         }
@@ -144,51 +133,149 @@ const BoardThumbnail: React.FC<BoardThumbnailProps> = ({
         const html = svg.outerHTML;
         thumbnailSvgCache.set(board.id, html);
 
-        if (!cancelled) {
+        if (isMounted) {
           setSvgHtml(html);
-          setLoading(false);
         }
-      } catch (err) {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      } catch {
+        // Fallback to empty placeholder if export fails
       }
-    }
+    };
 
-    generateSvg();
+    generatePreview();
 
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
-  }, [board.id, isActive, excalidrawAPI, board.updatedAt]);
+  }, [board.id, board.updatedAt, board.elementCount, isActive, excalidrawAPI]);
 
-  if (loading) {
+  if (!svgHtml) {
     return (
-      <div className="drawo-thumb-skeleton">
-        <div className="drawo-thumb-skeleton__pulse" />
+      <div className="drawo-thumb-empty">
+        <span>Empty scene</span>
       </div>
-    );
-  }
-
-  if (svgHtml) {
-    return (
-      <div
-        className="drawo-thumb-rendered"
-        dangerouslySetInnerHTML={{ __html: svgHtml }}
-      />
     );
   }
 
   return (
-    <div className="drawo-thumb-empty">
-      <div className="drawo-thumb-empty__grid" />
-      <div className="drawo-thumb-empty__content">
-        <span className="drawo-thumb-empty__icon">✏️</span>
-        <span className="drawo-thumb-empty__text">Blank Canvas</span>
-      </div>
-    </div>
+    <div
+      className="drawo-thumb-svg-wrapper"
+      dangerouslySetInnerHTML={{ __html: svgHtml }}
+    />
   );
 };
+
+/**
+ * Playful hand-drawn background doodles matching Excalidraw+ onboarding.
+ */
+const DoodleBackground: React.FC = () => (
+  <div className="drawo-onboard-doodles" aria-hidden="true">
+    <svg className="doodle d-1" viewBox="0 0 40 40">
+      <rect
+        x="10"
+        y="10"
+        width="18"
+        height="18"
+        transform="rotate(35 19 19)"
+        fill="none"
+        stroke="#f87171"
+        strokeWidth="1.5"
+      />
+    </svg>
+    <svg className="doodle d-2" viewBox="0 0 50 30">
+      <path
+        d="M5 15 Q 15 2, 25 15 T 45 15"
+        fill="none"
+        stroke="#34d399"
+        strokeWidth="1.5"
+      />
+    </svg>
+    <svg className="doodle d-3" viewBox="0 0 40 40">
+      <path
+        d="M8 22 L30 14 M24 9 L31 14 L26 21"
+        fill="none"
+        stroke="#9ca3af"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+    <svg className="doodle d-4" viewBox="0 0 40 40">
+      <path
+        d="M20 6 L24 16 L34 20 L24 24 L20 34 L16 24 L6 20 L16 16 Z"
+        fill="none"
+        stroke="#60a5fa"
+        strokeWidth="1.5"
+      />
+    </svg>
+    <svg className="doodle d-5" viewBox="0 0 40 40">
+      <polygon
+        points="20,6 24,15 34,16 26,23 28,33 20,28 12,33 14,23 6,16 16,15"
+        fill="none"
+        stroke="#f87171"
+        strokeWidth="1.5"
+      />
+    </svg>
+    <svg className="doodle d-6" viewBox="0 0 50 35">
+      <path
+        d="M14 26 H34 A8 8 0 0 0 35 10 A10 10 0 0 0 16 8 A7 7 0 0 0 14 26 Z"
+        fill="none"
+        stroke="#6ee7b7"
+        strokeWidth="1.5"
+      />
+    </svg>
+    <svg className="doodle d-7" viewBox="0 0 40 40">
+      <text x="6" y="26" fill="#34d399" fontSize="20" fontFamily="monospace">
+        {"{ }"}
+      </text>
+    </svg>
+    <svg className="doodle d-8" viewBox="0 0 40 40">
+      <path
+        d="M12 28 L26 14 L30 18 L16 32 L10 34 Z"
+        fill="none"
+        stroke="#60a5fa"
+        strokeWidth="1.5"
+      />
+    </svg>
+    <svg className="doodle d-9" viewBox="0 0 40 40">
+      <circle
+        cx="20"
+        cy="20"
+        r="11"
+        fill="none"
+        stroke="#a78bfa"
+        strokeWidth="1.5"
+      />
+    </svg>
+    <svg className="doodle d-10" viewBox="0 0 40 40">
+      <path
+        d="M20 32 C10 24, 6 14, 13 10 C17 8, 20 12, 20 14 C20 12, 23 8, 27 10 C34 14, 30 24, 20 32 Z"
+        fill="none"
+        stroke="#9ca3af"
+        strokeWidth="1.5"
+      />
+    </svg>
+    <svg className="doodle d-11" viewBox="0 0 40 40">
+      <path
+        d="M20 8 V32 M8 20 H32"
+        stroke="#9ca3af"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+    <svg className="doodle d-12" viewBox="0 0 40 40">
+      <rect
+        x="8"
+        y="10"
+        width="22"
+        height="18"
+        rx="3"
+        transform="rotate(-12 19 19)"
+        fill="none"
+        stroke="#60a5fa"
+        strokeWidth="1.5"
+      />
+    </svg>
+  </div>
+);
 
 export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   excalidrawAPI,
@@ -197,8 +284,16 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   const workspace = useAtomValue(drawoWorkspaceAtom);
   const userProfile = useAtomValue(drawoAuthAtom);
 
+  // Onboarding / screen flow state:
+  // "auto" shows Sign-In if not logged in, "no-workspace" if 0 workspaces, or "dashboard" if >=1 workspaces
+  const [screenOverride, setScreenOverride] = useState<
+    "auto" | "no-workspace" | "create-workspace" | "user-settings"
+  >("auto");
+
+  const [isWsSwitcherOpen, setIsWsSwitcherOpen] = useState(false);
+
   const [selectedNav, setSelectedNav] = useState<
-    "collection" | "dashboard" | "settings" | "members" | "trash" | "auth"
+    "collection" | "dashboard" | "settings" | "members" | "trash"
   >("collection");
   const [selectedCollectionId, setSelectedCollectionId] =
     useState<string>("col-private");
@@ -215,24 +310,24 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
 
-  // Auth & Profile state
+  // Sign In / Sign Up & Create Workspace form state
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authDisplayName, setAuthDisplayName] = useState("");
+  const [authErrorMsg, setAuthErrorMsg] = useState<string | null>(null);
+  const [authStatusMsg, setAuthStatusMsg] = useState<string | null>(null);
+  const [isAuthBusy, setIsAuthBusy] = useState(false);
+
+  // Create Workspace state
+  const [newWorkspaceName, setNewWorkspaceName] = useState("");
+  const [includeStarterScenes, setIncludeStarterScenes] = useState(true);
+
+  // User Settings state
   const [profileNameInput, setProfileNameInput] = useState(
     userProfile.displayName,
   );
-  const [workspaceNameInput, setWorkspaceNameInput] = useState(
-    userProfile.workspaceName,
-  );
   const [selectedAvatar, setSelectedAvatar] = useState(userProfile.avatar);
-  const [firebaseConfigInput, setFirebaseConfigInput] = useState(() => {
-    const cfg = DrawoAuth.getFirebaseConfig();
-    return cfg ? JSON.stringify(cfg, null, 2) : "";
-  });
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
-  const [authStatusMsg, setAuthStatusMsg] = useState<string | null>(null);
-  const [authErrorMsg, setAuthErrorMsg] = useState<string | null>(null);
-  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const newColInputRef = useRef<HTMLInputElement>(null);
@@ -243,9 +338,8 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
 
   useEffect(() => {
     setProfileNameInput(userProfile.displayName);
-    setWorkspaceNameInput(userProfile.workspaceName);
     setSelectedAvatar(userProfile.avatar);
-  }, [userProfile.displayName, userProfile.workspaceName, userProfile.avatar]);
+  }, [userProfile.displayName, userProfile.avatar]);
 
   // Keyboard navigation: Escape closes, Cmd+P or Cmd+O toggles
   useEffect(() => {
@@ -269,6 +363,16 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
       newColInputRef.current?.focus();
     }
   }, [isCreatingCollection]);
+
+  const activeWorkspaceEntry = useMemo(() => {
+    return (
+      userProfile.workspaces.find(
+        (w) => w.id === userProfile.activeWorkspaceId,
+      ) ||
+      userProfile.workspaces[0] ||
+      null
+    );
+  }, [userProfile.workspaces, userProfile.activeWorkspaceId]);
 
   const activeCollection = useMemo(() => {
     return (
@@ -332,6 +436,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
       await DrawoWorkspace.createBoard(excalidrawAPI, {
         collectionId: colId,
       });
+      await DrawoAuth.syncWorkspacesToCloud().catch(() => {});
       setIsOpen(false);
     }
   };
@@ -350,6 +455,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
     for (let i = 0; i < files.length; i++) {
       await DrawoWorkspace.importBoardFile(files[i], excalidrawAPI, colId);
     }
+    await DrawoAuth.syncWorkspacesToCloud().catch(() => {});
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -366,100 +472,657 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
         setSelectedNav("collection");
         setSelectedCollectionId(newCol.id);
       }
+      DrawoAuth.syncWorkspacesToCloud().catch(() => {});
     }
     setNewColName("");
     setIsCreatingCollection(false);
   };
 
-  const handleSaveLocalProfile = () => {
-    setAuthErrorMsg(null);
-    DrawoAuth.updateLocalProfile({
-      displayName: profileNameInput,
-      workspaceName: workspaceNameInput,
-      avatar: selectedAvatar,
-    });
-    setAuthStatusMsg("Profile & workspace identity updated!");
-    setTimeout(() => setAuthStatusMsg(null), 3500);
-  };
-
-  const handleSaveFirebaseConfig = async () => {
-    setAuthErrorMsg(null);
-    setAuthStatusMsg(null);
-    try {
-      const saved = await DrawoAuth.saveFirebaseConfig(firebaseConfigInput);
-      setFirebaseConfigInput(JSON.stringify(saved, null, 2));
-      setAuthStatusMsg(
-        `Connected to Firebase Spark project "${saved.projectId}"! You can now sign in below.`,
-      );
-    } catch (err: any) {
-      setAuthErrorMsg(err?.message || "Invalid Firebase config.");
-    }
-  };
-
+  // Auth handlers
   const handleGoogleSignIn = async () => {
     setAuthErrorMsg(null);
-    setAuthStatusMsg(null);
+    setIsAuthBusy(true);
     try {
-      const prof = await DrawoAuth.signInWithGoogle();
-      setAuthStatusMsg(`Signed in as ${prof.displayName} via Google!`);
+      await DrawoAuth.signInWithGoogle();
+      setScreenOverride("auto");
     } catch (err: any) {
       setAuthErrorMsg(err?.message || "Google Sign-In failed.");
+    } finally {
+      setIsAuthBusy(false);
     }
   };
 
   const handleGithubSignIn = async () => {
     setAuthErrorMsg(null);
-    setAuthStatusMsg(null);
+    setIsAuthBusy(true);
     try {
-      const prof = await DrawoAuth.signInWithGithub();
-      setAuthStatusMsg(`Signed in as ${prof.displayName} via GitHub!`);
+      await DrawoAuth.signInWithGithub();
+      setScreenOverride("auto");
     } catch (err: any) {
       setAuthErrorMsg(err?.message || "GitHub Sign-In failed.");
+    } finally {
+      setIsAuthBusy(false);
     }
   };
 
-  const handleEmailAuth = async () => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setAuthErrorMsg(null);
-    setAuthStatusMsg(null);
     if (!authEmail.trim() || !authPassword) {
-      setAuthErrorMsg("Please enter both email and password.");
+      setAuthErrorMsg("Please enter your email and password.");
       return;
     }
+    setIsAuthBusy(true);
     try {
       if (authMode === "signup") {
-        const prof = await DrawoAuth.signUpWithEmail(
+        await DrawoAuth.signUpWithEmail(
           authEmail,
           authPassword,
-          profileNameInput,
+          authDisplayName,
         );
-        setAuthStatusMsg(`Account created! Signed in as ${prof.displayName}.`);
       } else {
-        const prof = await DrawoAuth.signInWithEmail(authEmail, authPassword);
-        setAuthStatusMsg(`Signed in as ${prof.displayName}!`);
+        await DrawoAuth.signInWithEmail(authEmail, authPassword);
       }
       setAuthPassword("");
+      setScreenOverride("auto");
     } catch (err: any) {
-      setAuthErrorMsg(err?.message || "Email authentication failed.");
+      setAuthErrorMsg(err?.message || "Authentication failed.");
+    } finally {
+      setIsAuthBusy(false);
     }
   };
 
-  const handleCloudSync = async () => {
-    setAuthErrorMsg(null);
-    setAuthStatusMsg(null);
-    setIsSyncingCloud(true);
+  const handleCreateWorkspaceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAuthBusy(true);
     try {
-      await DrawoAuth.syncWorkspaceToCloud();
-      setAuthStatusMsg("Workspace & boards synced to Cloud Firestore!");
-    } catch (err: any) {
-      setAuthErrorMsg(err?.message || "Firestore sync failed.");
+      const defaultName =
+        newWorkspaceName.trim() ||
+        `${userProfile.displayName || "My"}'s Workspace`;
+      await DrawoAuth.createWorkspace(defaultName, includeStarterScenes);
+      setNewWorkspaceName("");
+      setScreenOverride("auto");
     } finally {
-      setIsSyncingCloud(false);
+      setIsAuthBusy(false);
     }
+  };
+
+  const handleSaveUserSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    DrawoAuth.updateUserProfile({
+      displayName: profileNameInput,
+      avatar: selectedAvatar,
+    });
+    setAuthStatusMsg("User settings saved!");
+    setTimeout(() => {
+      setAuthStatusMsg(null);
+      setScreenOverride("auto");
+    }, 900);
   };
 
   if (!isOpen) {
     return null;
   }
+
+  // Determine which view to show:
+  // 1. Not signed in -> Sign In / Sign Up screen
+  // 2. Signed in, but 0 workspaces (or screenOverride === "no-workspace") -> "No workspace yet" screen
+  // 3. screenOverride === "create-workspace" -> Create Workspace screen
+  // 4. screenOverride === "user-settings" -> User Settings screen
+  // 5. Signed in and has >=1 workspaces -> Full Workspace Dashboard
+  const activeScreen = !userProfile.isCloudAuthenticated
+    ? "auth"
+    : screenOverride !== "auto"
+    ? screenOverride
+    : userProfile.workspaces.length === 0
+    ? "no-workspace"
+    : "dashboard";
+
+  // =========================================================================
+  // ONBOARDING / AUTH / NO-WORKSPACE / CREATE-WORKSPACE SCREENS
+  // =========================================================================
+  if (activeScreen !== "dashboard") {
+    return (
+      <div
+        className="drawo-dashboard-backdrop"
+        onClick={() => setIsOpen(false)}
+      >
+        <div
+          className="drawo-dashboard-modal drawo-onboard-surface"
+          onClick={(e) => e.stopPropagation()}
+          data-testid="drawo-workspace-onboarding"
+        >
+          <DoodleBackground />
+
+          {/* Top Bar (Logo left, User avatar/Close right) */}
+          <header className="drawo-onboard-topbar">
+            <div className="drawo-onboard-logo" title="Drawo">
+              <svg viewBox="0 0 28 28" width="28" height="28" fill="none">
+                <path
+                  d="M6 22L22 6M6 6l16 16"
+                  stroke="var(--color-primary)"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+
+            <div className="drawo-onboard-topbar__right">
+              {userProfile.isCloudAuthenticated && (
+                <button
+                  type="button"
+                  className="drawo-onboard-avatar-btn"
+                  title={`${userProfile.displayName} (${userProfile.email})`}
+                  onClick={() =>
+                    setScreenOverride(
+                      activeScreen === "user-settings"
+                        ? "auto"
+                        : "user-settings",
+                    )
+                  }
+                >
+                  {userProfile.photoURL ? (
+                    <img
+                      src={userProfile.photoURL}
+                      alt={userProfile.displayName}
+                    />
+                  ) : (
+                    <span>{userProfile.avatar || "🐧"}</span>
+                  )}
+                </button>
+              )}
+              <button
+                type="button"
+                className="drawo-close-modal-btn"
+                title="Back to canvas (Esc)"
+                onClick={() => setIsOpen(false)}
+              >
+                {CloseIcon}
+              </button>
+            </div>
+          </header>
+
+          {/* Center Floating Card */}
+          <div className="drawo-onboard-center-wrap">
+            <div className="drawo-onboard-card">
+              {/* Tilted Purple "Welcome!" Badge */}
+              <div className="drawo-onboard-welcome-tag">Welcome!</div>
+
+              {/* Dashed Shapes Illustration */}
+              <div className="drawo-onboard-illustration">
+                <svg viewBox="0 0 160 88" width="148" height="82" fill="none">
+                  <rect
+                    x="4"
+                    y="4"
+                    width="152"
+                    height="80"
+                    rx="10"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeDasharray="5 5"
+                    opacity="0.35"
+                  />
+                  <rect
+                    x="26"
+                    y="18"
+                    width="24"
+                    height="24"
+                    rx="3"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    opacity="0.45"
+                  />
+                  <path
+                    d="M80 34V54M70 44H90"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    opacity="0.55"
+                  />
+                  <polygon
+                    points="118,18 134,46 102,46"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinejoin="round"
+                    opacity="0.45"
+                  />
+                  <rect
+                    x="74"
+                    y="58"
+                    width="12"
+                    height="12"
+                    transform="rotate(45 80 64)"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    opacity="0.45"
+                  />
+                </svg>
+              </div>
+
+              {/* ========================================================= */}
+              {/* SCREEN 1: SIGN IN / SIGN UP                               */}
+              {/* ========================================================= */}
+              {activeScreen === "auth" && (
+                <>
+                  <h1 className="drawo-onboard-title">
+                    {authMode === "signup"
+                      ? "Create your account"
+                      : "Sign in to Drawo"}
+                    <span className="drawo-onboard-title__swoosh" />
+                  </h1>
+                  <p className="drawo-onboard-subtitle">
+                    {authMode === "signup"
+                      ? "Sign up to create cloud workspaces and sync your scenes."
+                      : "Welcome back! Sign in to access your workspaces."}
+                  </p>
+
+                  {authErrorMsg && (
+                    <div className="drawo-onboard-alert drawo-onboard-alert--error">
+                      {authErrorMsg}
+                    </div>
+                  )}
+
+                  <div className="drawo-onboard-oauth-stack">
+                    <button
+                      type="button"
+                      className="drawo-onboard-oauth-btn"
+                      onClick={handleGoogleSignIn}
+                      disabled={isAuthBusy}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24">
+                        <path
+                          fill="#4285F4"
+                          d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 24c3.3 0 6.08-1.09 8.1-2.96l-3.88-3.05c-1.08.72-2.45 1.16-4.22 1.16-3.24 0-5.98-2.19-6.96-5.14H1.04v3.14C3.05 21.14 7.2 24 12 24Z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.04 14.01A7.3 7.3 0 0 1 4.66 12c0-.7.13-1.38.38-2.01V6.85H1.04A11.98 11.98 0 0 0 0 12c0 1.92.46 3.74 1.04 5.15l4-3.14Z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.2 0 3.05 2.86 1.04 6.85l4 3.14c.98-2.95 3.72-5.24 6.96-5.24Z"
+                        />
+                      </svg>
+                      <span>Continue with Google</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="drawo-onboard-oauth-btn"
+                      onClick={handleGithubSignIn}
+                      disabled={isAuthBusy}
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.07 11.07 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.24 2.76.12 3.05.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.13 0 1.54-.01 2.78-.01 3.16 0 .31.21.67.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
+                      </svg>
+                      <span>Continue with GitHub</span>
+                    </button>
+                  </div>
+
+                  <div className="drawo-onboard-or">
+                    <span>or with email</span>
+                  </div>
+
+                  <form
+                    className="drawo-onboard-form"
+                    onSubmit={handleEmailSubmit}
+                  >
+                    {authMode === "signup" && (
+                      <TextField
+                        label="Name"
+                        placeholder="Your display name"
+                        value={authDisplayName}
+                        onChange={(val) => setAuthDisplayName(val)}
+                        fullWidth
+                      />
+                    )}
+                    <TextField
+                      label="Email"
+                      placeholder="you@example.com"
+                      value={authEmail}
+                      onChange={(val) => setAuthEmail(val)}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Password"
+                      isRedacted
+                      placeholder="••••••••"
+                      value={authPassword}
+                      onChange={(val) => setAuthPassword(val)}
+                      fullWidth
+                    />
+
+                    <button
+                      type="submit"
+                      className="drawo-onboard-primary-btn"
+                      disabled={isAuthBusy}
+                    >
+                      {isAuthBusy
+                        ? "Please wait..."
+                        : authMode === "signup"
+                        ? "+ Sign up & continue"
+                        : "Sign in"}
+                    </button>
+                  </form>
+
+                  <button
+                    type="button"
+                    className="drawo-onboard-link-btn"
+                    onClick={() => {
+                      setAuthErrorMsg(null);
+                      setAuthMode(authMode === "signin" ? "signup" : "signin");
+                    }}
+                  >
+                    {authMode === "signin"
+                      ? "Don't have an account? Create account"
+                      : "Already have an account? Sign in"}
+                  </button>
+                </>
+              )}
+
+              {/* ========================================================= */}
+              {/* SCREEN 2: NO WORKSPACE YET (Matches screenshot!)          */}
+              {/* ========================================================= */}
+              {activeScreen === "no-workspace" && (
+                <>
+                  <h1 className="drawo-onboard-title">
+                    No workspace yet
+                    <span className="drawo-onboard-title__swoosh" />
+                  </h1>
+                  <p className="drawo-onboard-subtitle">
+                    You haven't created any workspace yet. Let's change that!
+                  </p>
+
+                  {/* Signed In As Pill Box */}
+                  <div className="drawo-signed-in-pill">
+                    <div className="drawo-signed-in-pill__left">
+                      <span className="drawo-signed-in-pill__label">
+                        SIGNED IN AS
+                      </span>
+                      <span className="drawo-signed-in-pill__email">
+                        {userProfile.email || userProfile.displayName}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="drawo-signed-in-pill__signout"
+                      onClick={() => DrawoAuth.signOut()}
+                    >
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                      <span>Sign out</span>
+                    </button>
+                  </div>
+
+                  {/* Primary CTA: + Create workspace */}
+                  <button
+                    type="button"
+                    className="drawo-onboard-primary-btn"
+                    onClick={() => setScreenOverride("create-workspace")}
+                  >
+                    <span>+</span>
+                    <span>Create workspace</span>
+                  </button>
+
+                  {/* Secondary link: User settings */}
+                  <button
+                    type="button"
+                    className="drawo-onboard-link-btn"
+                    onClick={() => setScreenOverride("user-settings")}
+                  >
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>User settings</span>
+                  </button>
+
+                  {userProfile.workspaces.length > 0 && (
+                    <button
+                      type="button"
+                      className="drawo-onboard-link-btn"
+                      onClick={() => setScreenOverride("auto")}
+                    >
+                      ← Back to {activeWorkspaceEntry?.name || "workspace"}
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* ========================================================= */}
+              {/* SCREEN 3: CREATE WORKSPACE                                */}
+              {/* ========================================================= */}
+              {activeScreen === "create-workspace" && (
+                <>
+                  <h1 className="drawo-onboard-title">
+                    Create workspace
+                    <span className="drawo-onboard-title__swoosh" />
+                  </h1>
+                  <p className="drawo-onboard-subtitle">
+                    Give your workspace a name to organize your boards and
+                    collections.
+                  </p>
+
+                  <form
+                    className="drawo-onboard-form"
+                    onSubmit={handleCreateWorkspaceSubmit}
+                  >
+                    <div className="drawo-create-ws-preview">
+                      <div className="drawo-ws-header__avatar">
+                        {(
+                          newWorkspaceName.trim() ||
+                          userProfile.displayName ||
+                          "D"
+                        )
+                          .charAt(0)
+                          .toUpperCase()}
+                      </div>
+                      <span>
+                        {newWorkspaceName.trim() ||
+                          `${userProfile.displayName || "My"}'s Workspace`}
+                      </span>
+                    </div>
+
+                    <TextField
+                      label="Workspace name"
+                      placeholder={`${
+                        userProfile.displayName || "My"
+                      }'s Workspace`}
+                      value={newWorkspaceName}
+                      onChange={(val) => setNewWorkspaceName(val)}
+                      selectOnRender
+                      fullWidth
+                    />
+
+                    <label className="drawo-create-ws-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={includeStarterScenes}
+                        onChange={(e) =>
+                          setIncludeStarterScenes(e.target.checked)
+                        }
+                      />
+                      <span>Include starter example scenes & templates</span>
+                    </label>
+
+                    <button
+                      type="submit"
+                      className="drawo-onboard-primary-btn"
+                      disabled={isAuthBusy}
+                    >
+                      <span>+</span>
+                      <span>
+                        {isAuthBusy
+                          ? "Creating workspace..."
+                          : "Create workspace"}
+                      </span>
+                    </button>
+                  </form>
+
+                  <button
+                    type="button"
+                    className="drawo-onboard-link-btn"
+                    onClick={() =>
+                      setScreenOverride(
+                        userProfile.workspaces.length === 0
+                          ? "no-workspace"
+                          : "auto",
+                      )
+                    }
+                  >
+                    ← Back
+                  </button>
+                </>
+              )}
+
+              {/* ========================================================= */}
+              {/* SCREEN 4: USER SETTINGS                                   */}
+              {/* ========================================================= */}
+              {activeScreen === "user-settings" && (
+                <>
+                  <h1 className="drawo-onboard-title">
+                    User settings
+                    <span className="drawo-onboard-title__swoosh" />
+                  </h1>
+                  <p className="drawo-onboard-subtitle">
+                    Customize your display name and avatar across workspaces.
+                  </p>
+
+                  {authStatusMsg && (
+                    <div className="drawo-onboard-alert drawo-onboard-alert--success">
+                      {authStatusMsg}
+                    </div>
+                  )}
+
+                  <form
+                    className="drawo-onboard-form"
+                    onSubmit={handleSaveUserSettings}
+                  >
+                    <div className="drawo-auth-avatar-picker">
+                      {["🐧", "🚀", "⚡", "🦊", "🎨", "🤖", "🐱", "💎"].map(
+                        (emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            className={clsx("drawo-auth-avatar-btn", {
+                              "drawo-auth-avatar-btn--active":
+                                selectedAvatar === emoji,
+                            })}
+                            onClick={() => setSelectedAvatar(emoji)}
+                          >
+                            {emoji}
+                          </button>
+                        ),
+                      )}
+                    </div>
+
+                    <TextField
+                      label="Display name"
+                      placeholder="Your name"
+                      value={profileNameInput}
+                      onChange={(val) => setProfileNameInput(val)}
+                      fullWidth
+                    />
+
+                    <button type="submit" className="drawo-onboard-primary-btn">
+                      Save settings
+                    </button>
+                  </form>
+
+                  <button
+                    type="button"
+                    className="drawo-onboard-link-btn"
+                    onClick={() => setScreenOverride("auto")}
+                  >
+                    ← Back
+                  </button>
+                </>
+              )}
+
+              {/* Card Footer matching screenshot */}
+              <div className="drawo-onboard-footer">
+                <p className="drawo-onboard-footer__note">
+                  Don't want to{" "}
+                  {activeScreen === "auth" ? "sign in" : "create a workspace"}{" "}
+                  just yet? You are welcome to use our free open source editor
+                  over at{" "}
+                  <button
+                    type="button"
+                    className="drawo-onboard-inline-link"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    drawo.app
+                  </button>{" "}
+                  in the meantime.
+                </p>
+
+                <div className="drawo-onboard-footer__divider">
+                  <span>Need help?</span>
+                </div>
+
+                <div className="drawo-onboard-footer__links">
+                  <a href="mailto:support@excalidraw.com">
+                    ✉ support@excalidraw.com
+                  </a>
+                  <span className="sep">|</span>
+                  <a
+                    href="https://discord.gg/UexuTaE"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    💬 Get help on Discord
+                  </a>
+                  <span className="sep">|</span>
+                  <a
+                    href="https://github.com/excalidraw/excalidraw/issues"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    🐙 Report issue on GitHub
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // FULL WORKSPACE DASHBOARD (Signed in & has >= 1 Workspace)
+  // =========================================================================
+  const currentWorkspaceName = activeWorkspaceEntry?.name || "drawo";
 
   return (
     <div className="drawo-dashboard-backdrop" onClick={() => setIsOpen(false)}>
@@ -470,25 +1133,73 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
       >
         {/* Left Sidebar */}
         <aside className="drawo-dashboard-sidebar">
-          {/* Workspace Switcher / Profile Header */}
-          <div
-            className="drawo-ws-header"
-            onClick={() => setSelectedNav("auth")}
-            title="Click to manage Workspace & Authentication"
-          >
-            <div className="drawo-ws-header__avatar">
-              {(userProfile.workspaceName || "D").charAt(0).toUpperCase()}
-            </div>
-            <div className="drawo-ws-header__info">
-              <div className="drawo-ws-header__title">
-                {userProfile.workspaceName || "drawo"}
+          {/* Workspace Switcher Header */}
+          <div className="drawo-ws-switcher-wrap">
+            <div
+              className="drawo-ws-header"
+              onClick={() => setIsWsSwitcherOpen((prev) => !prev)}
+              title="Switch or create workspace"
+            >
+              <div className="drawo-ws-header__avatar">
+                {currentWorkspaceName.charAt(0).toUpperCase()}
               </div>
-              <div className="drawo-ws-header__plan">
-                {userProfile.isCloudAuthenticated
-                  ? "Firebase Spark Cloud"
-                  : "Local Workspace"}
+              <div className="drawo-ws-header__info">
+                <div className="drawo-ws-header__title">
+                  {currentWorkspaceName}
+                </div>
+                <div className="drawo-ws-header__plan">
+                  {userProfile.workspaces.length} workspace
+                  {userProfile.workspaces.length > 1 ? "s" : ""} ▾
+                </div>
               </div>
             </div>
+
+            {isWsSwitcherOpen && (
+              <div className="drawo-ws-switcher-menu">
+                <div className="drawo-ws-switcher-menu__label">
+                  Your Workspaces
+                </div>
+                {userProfile.workspaces.map((ws) => (
+                  <button
+                    key={ws.id}
+                    type="button"
+                    className={clsx("drawo-ws-switcher-item", {
+                      active: ws.id === activeWorkspaceEntry?.id,
+                    })}
+                    onClick={() => {
+                      DrawoAuth.switchWorkspace(ws.id);
+                      setIsWsSwitcherOpen(false);
+                    }}
+                  >
+                    <span className="ws-avatar">
+                      {ws.name.charAt(0).toUpperCase()}
+                    </span>
+                    <span className="ws-name">{ws.name}</span>
+                  </button>
+                ))}
+                <div className="drawo-ws-switcher-divider" />
+                <button
+                  type="button"
+                  className="drawo-ws-switcher-action"
+                  onClick={() => {
+                    setIsWsSwitcherOpen(false);
+                    setScreenOverride("create-workspace");
+                  }}
+                >
+                  + Create new workspace
+                </button>
+                <button
+                  type="button"
+                  className="drawo-ws-switcher-action"
+                  onClick={() => {
+                    setIsWsSwitcherOpen(false);
+                    setScreenOverride("no-workspace");
+                  }}
+                >
+                  Welcome / Account screen
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Native TextField component for search */}
@@ -606,13 +1317,11 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
             )}
           </div>
 
-          {/* User Profile Footer — clickable to open Authentication & Profile */}
+          {/* User Profile Footer */}
           <div
-            className={clsx("drawo-ws-user-footer", {
-              "drawo-ws-user-footer--active": selectedNav === "auth",
-            })}
-            onClick={() => setSelectedNav("auth")}
-            title="Account & Firebase Spark Authentication"
+            className="drawo-ws-user-footer"
+            onClick={() => setScreenOverride("user-settings")}
+            title="User settings & account"
           >
             <div className="drawo-ws-user-badge">
               {userProfile.photoURL ? (
@@ -627,12 +1336,20 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                 </span>
               )}
               <span className="drawo-ws-user-name">
-                {userProfile.displayName}
+                {userProfile.displayName || userProfile.email}
               </span>
             </div>
-            <span className="drawo-ws-user-status-pill">
-              {userProfile.isCloudAuthenticated ? "Cloud" : "Auth"}
-            </span>
+            <button
+              type="button"
+              className="drawo-ws-user-status-pill"
+              onClick={(e) => {
+                e.stopPropagation();
+                DrawoAuth.signOut();
+              }}
+              title="Sign out"
+            >
+              Sign out
+            </button>
           </div>
         </aside>
 
@@ -649,8 +1366,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                     ? "⚙"
                     : selectedNav === "members"
                     ? "👥"
-                    : selectedNav === "auth"
-                    ? "🔐"
                     : selectedNav === "trash"
                     ? "🗑"
                     : activeCollection.icon || "🔒"}
@@ -662,8 +1377,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                     ? "Workspace Settings"
                     : selectedNav === "members"
                     ? "Team Members"
-                    : selectedNav === "auth"
-                    ? "Authentication & Cloud Sync"
                     : selectedNav === "trash"
                     ? "Trash"
                     : activeCollection.name}
@@ -673,11 +1386,9 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                 {selectedNav === "dashboard"
                   ? "Overview of all your boards and drawings across all collections."
                   : selectedNav === "settings"
-                  ? "Manage workspace preferences, storage limits, and export backups."
+                  ? "Manage workspace preferences, create new workspaces, and sync to Firebase."
                   : selectedNav === "members"
                   ? "Manage collaborators, permission roles, and guest links."
-                  : selectedNav === "auth"
-                  ? "Connect your Firebase Spark free project (drawo-e4ac6) for Google, GitHub, or Email sign-in and Cloud Firestore sync."
                   : selectedNav === "trash"
                   ? "Deleted boards are saved here. You can restore them or empty the trash."
                   : activeCollection.description ||
@@ -686,7 +1397,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
             </div>
 
             <div className="drawo-main-header__actions">
-              {/* Sort Dropdown */}
               {(selectedNav === "collection" ||
                 selectedNav === "dashboard") && (
                 <div className="drawo-sort-select-wrap">
@@ -702,7 +1412,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                 </div>
               )}
 
-              {/* Close Button */}
               <button
                 className="drawo-close-modal-btn"
                 title="Close dashboard (Esc)"
@@ -713,7 +1422,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
             </div>
           </header>
 
-          {/* Quick Action Banners (Import Scenes + / Create Scene +) using Native FilledButton */}
+          {/* Quick Action Banners */}
           {(selectedNav === "collection" || selectedNav === "dashboard") && (
             <div className="drawo-action-banners-row">
               <div className="drawo-action-banner" onClick={handleImportClick}>
@@ -744,7 +1453,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Hidden file input for import */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -803,15 +1511,12 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                         })}
                         onClick={() => handleSelectBoard(board.id)}
                       >
-                        {/* Dynamic Live Board Thumbnail */}
                         <div className="drawo-scene-card__thumb">
                           <BoardThumbnail
                             board={board}
                             isActive={isActive}
                             excalidrawAPI={excalidrawAPI}
                           />
-
-                          {/* Relative Time badge in bottom right */}
                           <div className="drawo-scene-card__time">
                             {formatRelativeTime(
                               board.updatedAt || board.createdAt,
@@ -819,7 +1524,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                           </div>
                         </div>
 
-                        {/* Card Metadata */}
                         <div className="drawo-scene-card__info">
                           <div className="drawo-scene-card__title-row">
                             {isEditing ? (
@@ -896,7 +1600,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                                 {DotsHorizontalIcon}
                               </button>
 
-                              {/* Context Dropdown Menu */}
                               {activeMenuBoardId === board.id && (
                                 <div className="drawo-card-context-menu">
                                   {board.isTrash ? (
@@ -1006,42 +1709,39 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
               <div className="drawo-ws-settings-card">
                 <h3>Workspace Details</h3>
                 <div className="drawo-ws-setting-row">
-                  <span className="label">Workspace Name:</span>
-                  <span className="val">{userProfile.workspaceName}</span>
+                  <span className="label">Active Workspace:</span>
+                  <span className="val">{currentWorkspaceName}</span>
                 </div>
                 <div className="drawo-ws-setting-row">
-                  <span className="label">Plan:</span>
-                  <span className="badge-plan">
-                    {userProfile.isCloudAuthenticated
-                      ? `Firebase Spark (${userProfile.firebaseProjectId})`
-                      : "Local-First + Spark Ready"}
-                  </span>
+                  <span className="label">Signed In As:</span>
+                  <span className="val">{userProfile.email}</span>
+                </div>
+                <div className="drawo-ws-setting-row">
+                  <span className="label">Firebase Project:</span>
+                  <span className="badge-plan">drawo-plus-app (Spark)</span>
                 </div>
                 <div className="drawo-ws-setting-row">
                   <span className="label">Total Boards:</span>
                   <span className="val">{workspace.boards.length}</span>
                 </div>
-                <div className="drawo-ws-setting-row">
-                  <span className="label">Collections:</span>
-                  <span className="val">{workspace.collections.length}</span>
-                </div>
-                <div className="drawo-ws-setting-row">
-                  <span className="label">Storage Engine:</span>
-                  <span className="val">
-                    {userProfile.isCloudAuthenticated
-                      ? "IndexedDB + Cloud Firestore"
-                      : "Persistent IndexedDB"}
-                  </span>
-                </div>
-                <div style={{ marginTop: 18 }}>
+                <div className="drawo-ws-actions-row" style={{ marginTop: 18 }}>
                   <FilledButton
                     size="large"
                     variant="filled"
                     color="primary"
-                    label="Configure Authentication & Cloud Sync"
-                    onClick={() => setSelectedNav("auth")}
+                    label="+ Create New Workspace"
+                    onClick={() => setScreenOverride("create-workspace")}
                   >
-                    Configure Authentication & Cloud Sync
+                    + Create New Workspace
+                  </FilledButton>
+                  <FilledButton
+                    size="large"
+                    variant="outlined"
+                    color="primary"
+                    label="User Settings"
+                    onClick={() => setScreenOverride("user-settings")}
+                  >
+                    User Settings
                   </FilledButton>
                 </div>
               </div>
@@ -1070,268 +1770,11 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                       {userProfile.displayName}
                     </div>
                     <div className="drawo-member-role">
-                      {userProfile.email} • {userProfile.role}
+                      {userProfile.email} • Workspace Owner
                     </div>
                   </div>
-                  <span className="drawo-member-status">
-                    {userProfile.isCloudAuthenticated
-                      ? `Verified (${userProfile.provider})`
-                      : "Local Owner"}
-                  </span>
+                  <span className="drawo-member-status">Active</span>
                 </div>
-                <div style={{ marginTop: 16 }}>
-                  <FilledButton
-                    size="medium"
-                    variant="outlined"
-                    color="primary"
-                    label="Edit Profile or Sign In"
-                    onClick={() => setSelectedNav("auth")}
-                  >
-                    Edit Profile or Sign In
-                  </FilledButton>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Authentication & Firebase Spark Cloud Sync Tab Content */}
-          {selectedNav === "auth" && (
-            <div className="drawo-ws-settings-panel drawo-auth-grid">
-              {authStatusMsg && (
-                <div className="drawo-auth-banner drawo-auth-banner--success">
-                  {authStatusMsg}
-                </div>
-              )}
-              {authErrorMsg && (
-                <div className="drawo-auth-banner drawo-auth-banner--error">
-                  {authErrorMsg}
-                </div>
-              )}
-
-              {/* Card 1: Profile & Workspace Identity */}
-              <div className="drawo-ws-settings-card">
-                <h3>1. Profile & Workspace Identity</h3>
-                <p className="drawo-auth-card-desc">
-                  Your display name is used across all boards and synced with
-                  Live Collaboration rooms.
-                </p>
-
-                <div className="drawo-auth-avatar-picker">
-                  {["🐧", "🚀", "⚡", "🦊", "🎨", "🤖", "🐱", "💎"].map(
-                    (emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        className={clsx("drawo-auth-avatar-btn", {
-                          "drawo-auth-avatar-btn--active":
-                            selectedAvatar === emoji,
-                        })}
-                        onClick={() => setSelectedAvatar(emoji)}
-                      >
-                        {emoji}
-                      </button>
-                    ),
-                  )}
-                </div>
-
-                <div className="drawo-auth-field">
-                  <TextField
-                    label="Display Name"
-                    placeholder="Your name"
-                    value={profileNameInput}
-                    onChange={(val) => setProfileNameInput(val)}
-                    fullWidth
-                  />
-                </div>
-
-                <div className="drawo-auth-field">
-                  <TextField
-                    label="Workspace Name"
-                    placeholder="drawo"
-                    value={workspaceNameInput}
-                    onChange={(val) => setWorkspaceNameInput(val)}
-                    fullWidth
-                  />
-                </div>
-
-                <div className="drawo-auth-actions-row">
-                  <FilledButton
-                    size="large"
-                    variant="filled"
-                    color="primary"
-                    label="Save Profile"
-                    onClick={handleSaveLocalProfile}
-                  >
-                    Save Profile
-                  </FilledButton>
-                </div>
-              </div>
-
-              {/* Card 2: Firebase Spark Auth & Cloud Sync (drawo-e4ac6) */}
-              <div className="drawo-ws-settings-card">
-                <h3>2. Firebase Spark Authentication (drawo-e4ac6)</h3>
-                <p className="drawo-auth-card-desc">
-                  In your{" "}
-                  <a
-                    href="https://console.firebase.google.com/project/drawo-e4ac6/settings/general"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Firebase Console (drawo-e4ac6)
-                  </a>
-                  , click the Web <code>&lt;/&gt;</code> icon to register a web
-                  app, then paste your <code>firebaseConfig</code> or{" "}
-                  <code>AIza...</code> API key below:
-                </p>
-
-                <textarea
-                  className="drawo-auth-config-textarea"
-                  rows={4}
-                  placeholder={`Paste firebaseConfig or AIza... API key for project "drawo-e4ac6"`}
-                  value={firebaseConfigInput}
-                  onChange={(e) => setFirebaseConfigInput(e.target.value)}
-                />
-
-                <div className="drawo-auth-actions-row">
-                  <FilledButton
-                    size="medium"
-                    variant="outlined"
-                    color="primary"
-                    label="Save Firebase Config"
-                    onClick={handleSaveFirebaseConfig}
-                  >
-                    Save Firebase Config
-                  </FilledButton>
-                </div>
-
-                <div className="drawo-auth-divider" />
-
-                {userProfile.isCloudAuthenticated ? (
-                  <div className="drawo-auth-signed-in-box">
-                    <div className="drawo-ws-setting-row">
-                      <span className="label">Signed In As:</span>
-                      <span className="val">
-                        {userProfile.displayName} ({userProfile.email})
-                      </span>
-                    </div>
-                    <div className="drawo-ws-setting-row">
-                      <span className="label">Auth Provider:</span>
-                      <span className="badge-plan">{userProfile.provider}</span>
-                    </div>
-                    <div className="drawo-ws-setting-row">
-                      <span className="label">Last Cloud Sync:</span>
-                      <span className="val">
-                        {userProfile.lastSyncedAt
-                          ? formatRelativeTime(userProfile.lastSyncedAt)
-                          : "Not synced yet"}
-                      </span>
-                    </div>
-                    <div className="drawo-auth-actions-row">
-                      <FilledButton
-                        size="large"
-                        variant="filled"
-                        color="primary"
-                        label={
-                          isSyncingCloud
-                            ? "Syncing..."
-                            : "Sync Workspace to Firestore"
-                        }
-                        onClick={handleCloudSync}
-                      >
-                        {isSyncingCloud
-                          ? "Syncing..."
-                          : "Sync Workspace to Firestore"}
-                      </FilledButton>
-                      <FilledButton
-                        size="large"
-                        variant="outlined"
-                        color="danger"
-                        label="Sign Out"
-                        onClick={() => DrawoAuth.signOut()}
-                      >
-                        Sign Out
-                      </FilledButton>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="drawo-auth-login-box">
-                    <div className="drawo-auth-oauth-row">
-                      <FilledButton
-                        size="large"
-                        variant="filled"
-                        color="primary"
-                        label="Sign in with Google"
-                        onClick={handleGoogleSignIn}
-                      >
-                        Sign in with Google
-                      </FilledButton>
-                      <FilledButton
-                        size="large"
-                        variant="outlined"
-                        color="primary"
-                        label="Sign in with GitHub"
-                        onClick={handleGithubSignIn}
-                      >
-                        Sign in with GitHub
-                      </FilledButton>
-                    </div>
-
-                    <div className="drawo-auth-email-section">
-                      <div className="drawo-auth-mode-tabs">
-                        <button
-                          type="button"
-                          className={clsx({ active: authMode === "signin" })}
-                          onClick={() => setAuthMode("signin")}
-                        >
-                          Email Sign In
-                        </button>
-                        <button
-                          type="button"
-                          className={clsx({ active: authMode === "signup" })}
-                          onClick={() => setAuthMode("signup")}
-                        >
-                          Create Account
-                        </button>
-                      </div>
-                      <div className="drawo-auth-field">
-                        <TextField
-                          label="Email"
-                          placeholder="you@example.com"
-                          value={authEmail}
-                          onChange={(val) => setAuthEmail(val)}
-                          fullWidth
-                        />
-                      </div>
-                      <div className="drawo-auth-field">
-                        <TextField
-                          label="Password"
-                          isRedacted
-                          placeholder="••••••••"
-                          value={authPassword}
-                          onChange={(val) => setAuthPassword(val)}
-                          fullWidth
-                        />
-                      </div>
-                      <div className="drawo-auth-actions-row">
-                        <FilledButton
-                          size="large"
-                          variant="filled"
-                          color="primary"
-                          label={
-                            authMode === "signup"
-                              ? "Create Firebase Account"
-                              : "Sign In with Email"
-                          }
-                          onClick={handleEmailAuth}
-                        >
-                          {authMode === "signup"
-                            ? "Create Firebase Account"
-                            : "Sign In with Email"}
-                        </FilledButton>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           )}

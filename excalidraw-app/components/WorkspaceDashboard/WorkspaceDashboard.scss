@@ -1097,3 +1097,567 @@
     background-color: var(--color-surface-primary-container);
   }
 }
+
+/* ============================================================================
+ * WORKSPACE SWITCHER DROPDOWN
+ * ============================================================================ */
+.drawo-ws-switcher-wrap {
+  position: relative;
+}
+
+.drawo-ws-switcher-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 10px;
+  right: 10px;
+  z-index: 40;
+  background-color: var(--island-bg-color);
+  border: 1px solid var(--default-border-color);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  &__label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-gray-60, #868e96);
+    padding: 4px 8px;
+  }
+
+  .drawo-ws-switcher-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary-color);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+
+    &:hover {
+      background-color: var(--button-hover-bg);
+    }
+
+    &.active {
+      background-color: var(--color-surface-primary-container);
+      color: var(--color-primary);
+    }
+
+    .ws-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background-color: var(--color-primary);
+      color: var(--color-surface-lowest, #fff);
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ws-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .drawo-ws-switcher-divider {
+    height: 1px;
+    background-color: var(--default-border-color);
+    margin: 4px 0;
+  }
+
+  .drawo-ws-switcher-action {
+    padding: 7px 8px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--color-primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+
+    &:hover {
+      background-color: var(--color-surface-primary-container);
+    }
+  }
+}
+
+/* ============================================================================
+ * EXCALIDRAW+ ONBOARDING / NO-WORKSPACE / SIGN-IN / CREATE WORKSPACE SCREEN
+ * ============================================================================ */
+.drawo-onboard-surface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--default-bg-color, #ffffff);
+  overflow-y: auto;
+}
+
+.drawo-onboard-doodles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.55;
+
+  .doodle {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+  }
+
+  .d-1 {
+    top: 14%;
+    left: 7%;
+  }
+  .d-2 {
+    top: 22%;
+    left: 13%;
+    width: 48px;
+  }
+  .d-3 {
+    top: 15%;
+    left: 33%;
+  }
+  .d-4 {
+    top: 14%;
+    right: 26%;
+  }
+  .d-5 {
+    top: 13%;
+    right: 11%;
+  }
+  .d-6 {
+    top: 23%;
+    right: 12%;
+    width: 48px;
+  }
+  .d-7 {
+    top: 47%;
+    left: 6%;
+  }
+  .d-8 {
+    top: 42%;
+    left: 11%;
+  }
+  .d-9 {
+    bottom: 30%;
+    right: 16%;
+  }
+  .d-10 {
+    bottom: 16%;
+    right: 24%;
+  }
+  .d-11 {
+    top: 28%;
+    left: 16%;
+  }
+  .d-12 {
+    bottom: 14%;
+    left: 15%;
+  }
+}
+
+.drawo-onboard-topbar {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .drawo-onboard-avatar-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid var(--default-border-color);
+    background-color: var(--color-surface-primary-container);
+    cursor: pointer;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+}
+
+.drawo-onboard-center-wrap {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px 40px;
+}
+
+.drawo-onboard-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background-color: var(--island-bg-color, #ffffff);
+  border: 1px solid var(--default-border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08), 0 2px 12px rgba(0, 0, 0, 0.04);
+  padding: 36px 34px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.drawo-onboard-welcome-tag {
+  position: absolute;
+  top: -12px;
+  left: -10px;
+  transform: rotate(-8deg);
+  background-color: var(--color-surface-primary-container);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  font-family: "Excalifont", "Virgil", cursive, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.drawo-onboard-illustration {
+  color: var(--text-primary-color);
+  margin-bottom: 18px;
+}
+
+.drawo-onboard-title {
+  position: relative;
+  font-family: "Excalifont", "Virgil", cursive, sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary-color);
+  margin: 0 0 10px;
+  display: inline-block;
+
+  &__swoosh {
+    display: block;
+    height: 4px;
+    width: 100%;
+    margin-top: 2px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      var(--color-primary) 0%,
+      var(--color-surface-primary-container) 100%
+    );
+    opacity: 0.55;
+  }
+}
+
+.drawo-onboard-subtitle {
+  font-size: 0.78rem;
+  color: var(--color-gray-60, #6b7280);
+  margin: 0 0 22px;
+  line-height: 1.45;
+}
+
+.drawo-signed-in-pill {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--color-surface-lowest, #f3f4f6);
+  border: 1px solid var(--default-border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 11px 14px;
+  margin-bottom: 16px;
+  text-align: left;
+
+  &__left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+  }
+
+  &__label {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--color-gray-60, #9ca3af);
+    text-transform: uppercase;
+  }
+
+  &__email {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__signout {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    background: transparent;
+    color: var(--color-gray-70, #4b5563);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 6px;
+    flex-shrink: 0;
+
+    &:hover {
+      background-color: var(--button-hover-bg);
+      color: var(--text-primary-color);
+    }
+  }
+}
+
+.drawo-onboard-primary-btn {
+  width: 100%;
+  max-width: 280px;
+  height: 42px;
+  border-radius: 8px;
+  border: none;
+  background-color: var(--color-primary);
+  color: var(--color-surface-lowest, #ffffff);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease;
+  margin-top: 4px;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.drawo-onboard-link-btn {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+
+  &:hover {
+    background-color: var(--color-surface-primary-container);
+  }
+}
+
+.drawo-onboard-oauth-stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.drawo-onboard-oauth-btn {
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--default-border-color);
+  background-color: var(--color-surface-lowest);
+  color: var(--text-primary-color);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    background-color: var(--color-surface-primary-container);
+  }
+}
+
+.drawo-onboard-or {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  color: var(--color-gray-60, #9ca3af);
+  font-size: 0.72rem;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background-color: var(--default-border-color);
+  }
+}
+
+.drawo-onboard-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.drawo-create-ws-preview {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: var(--color-surface-lowest);
+  border: 1px solid var(--default-border-color);
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--text-primary-color);
+}
+
+.drawo-create-ws-checkbox {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--color-gray-70, #6b7280);
+  cursor: pointer;
+  margin: 4px 0;
+}
+
+.drawo-onboard-alert {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+
+  &--error {
+    background-color: rgba(239, 68, 68, 0.12);
+    color: var(--color-danger, #ef4444);
+    border: 1px solid var(--color-danger, #ef4444);
+  }
+
+  &--success {
+    background-color: var(--color-surface-primary-container);
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+  }
+}
+
+.drawo-onboard-footer {
+  width: 100%;
+  margin-top: 26px;
+  padding-top: 6px;
+
+  &__note {
+    font-size: 0.6875rem;
+    color: var(--color-gray-60, #6b7280);
+    line-height: 1.5;
+    margin: 0 0 18px;
+  }
+
+  .drawo-onboard-inline-link {
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: var(--color-primary);
+    font-size: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  &__divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--color-gray-60, #9ca3af);
+    font-size: 0.6875rem;
+    margin-bottom: 12px;
+
+    &::before,
+    &::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background-color: var(--default-border-color);
+    }
+  }
+
+  &__links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.6875rem;
+
+    a {
+      color: var(--text-primary-color);
+      text-decoration: none;
+      opacity: 0.8;
+
+      &:hover {
+        opacity: 1;
+        color: var(--color-primary);
+      }
+    }
+
+    .sep {
+      color: var(--default-border-color);
+    }
+  }
+}
