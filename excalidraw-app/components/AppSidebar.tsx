@@ -17,8 +17,12 @@ import React, { useState } from "react";
 
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 
-import { useAtomValue } from "../app-jotai";
-import { DrawoWorkspace, drawoWorkspaceAtom } from "../data/DrawoWorkspace";
+import { useAtom, useAtomValue } from "../app-jotai";
+import {
+  DrawoWorkspace,
+  drawoWorkspaceAtom,
+  isWorkspaceDashboardOpenAtom,
+} from "../data/DrawoWorkspace";
 
 import "./AppSidebar.scss";
 
@@ -106,6 +110,7 @@ export const DrawoWorkspaceTopPill: React.FC<{
   excalidrawAPI: ExcalidrawImperativeAPI | null;
 }> = ({ excalidrawAPI }) => {
   const workspace = useAtomValue(drawoWorkspaceAtom);
+  const [, setIsDashboardOpen] = useAtom(isWorkspaceDashboardOpenAtom);
   const activeBoard =
     workspace.boards.find((b) => b.id === workspace.activeBoardId) ||
     workspace.boards[0];
@@ -115,12 +120,9 @@ export const DrawoWorkspaceTopPill: React.FC<{
       type="button"
       className="drawo-workspace-top-pill"
       data-testid="drawo-workspace-top-pill"
-      title="Open Drawo Workspace"
+      title="Open Workspace Dashboard (⌘P)"
       onClick={() => {
-        excalidrawAPI?.toggleSidebar({
-          name: DEFAULT_SIDEBAR.name,
-          tab: "workspace",
-        });
+        setIsDashboardOpen((prev) => !prev);
       }}
     >
       <span className="drawo-workspace-top-pill__icon">{boardIcon}</span>
@@ -140,6 +142,7 @@ export const AppSidebar: React.FC<{
 }> = ({ excalidrawAPI }) => {
   const { theme, openSidebar } = useUIAppState();
   const workspace = useAtomValue(drawoWorkspaceAtom);
+  const [, setIsDashboardOpen] = useAtom(isWorkspaceDashboardOpenAtom);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
@@ -216,26 +219,38 @@ export const AppSidebar: React.FC<{
               <span className="drawo-workspace-header__icon">{folderIcon}</span>
               <span>Workspace</span>
             </h3>
-            <FilledButton
-              size="medium"
-              variant="filled"
-              color="primary"
-              icon={PlusIcon}
-              label="New Board"
-              onClick={() => {
-                if (excalidrawAPI) {
-                  const colId =
-                    selectedFilter !== "all" && selectedFilter !== "favorites"
-                      ? selectedFilter
-                      : null;
-                  DrawoWorkspace.createBoard(excalidrawAPI, {
-                    collectionId: colId,
-                  });
-                }
-              }}
-            >
-              New Board
-            </FilledButton>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <FilledButton
+                size="medium"
+                variant="outlined"
+                label="Full Dashboard"
+                onClick={() => {
+                  setIsDashboardOpen(true);
+                }}
+              >
+                Dashboard ↗
+              </FilledButton>
+              <FilledButton
+                size="medium"
+                variant="filled"
+                color="primary"
+                icon={PlusIcon}
+                label="New Board"
+                onClick={() => {
+                  if (excalidrawAPI) {
+                    const colId =
+                      selectedFilter !== "all" && selectedFilter !== "favorites"
+                        ? selectedFilter
+                        : null;
+                    DrawoWorkspace.createBoard(excalidrawAPI, {
+                      collectionId: colId,
+                    });
+                  }
+                }}
+              >
+                New Board
+              </FilledButton>
+            </div>
           </div>
 
           <div className="drawo-workspace-search-wrap">

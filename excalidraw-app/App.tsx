@@ -142,7 +142,11 @@ import { ExcalidrawPlusIframeExport } from "./ExcalidrawPlusIframeExport";
 import "./index.scss";
 
 import { AppSidebar, DrawoWorkspaceTopPill } from "./components/AppSidebar";
-import { DrawoWorkspace } from "./data/DrawoWorkspace";
+import {
+  DrawoWorkspace,
+  isWorkspaceDashboardOpenAtom,
+} from "./data/DrawoWorkspace";
+import { WorkspaceDashboard } from "./components/WorkspaceDashboard/WorkspaceDashboard";
 
 import type { CollabAPI } from "./collab/Collab";
 
@@ -402,6 +406,7 @@ const ExcalidrawWrapper = () => {
 
   const [, setShareDialogState] = useAtom(shareDialogStateAtom);
   const [collabAPI] = useAtom(collabAPIAtom);
+  const [, setIsWorkspaceDashboardOpen] = useAtom(isWorkspaceDashboardOpenAtom);
   const [isCollaborating] = useAtomWithInitialValue(isCollaboratingAtom, () => {
     return isCollaborationLink(window.location.href);
   });
@@ -964,10 +969,7 @@ const ExcalidrawWrapper = () => {
           theme={appTheme}
           refresh={() => forceRefresh((prev) => !prev)}
           onOpenWorkspace={() => {
-            excalidrawAPI?.toggleSidebar({
-              name: DEFAULT_SIDEBAR.name,
-              tab: "workspace",
-            });
+            setIsWorkspaceDashboardOpen(true);
           }}
           onLoadDemo={() => {
             if (excalidrawAPI) {
@@ -979,10 +981,7 @@ const ExcalidrawWrapper = () => {
           onCollabDialogOpen={onCollabDialogOpen}
           isCollabEnabled={!isCollabDisabled}
           onOpenWorkspace={() => {
-            excalidrawAPI?.toggleSidebar({
-              name: DEFAULT_SIDEBAR.name,
-              tab: "workspace",
-            });
+            setIsWorkspaceDashboardOpen(true);
           }}
           onLoadDemo={() => {
             if (excalidrawAPI) {
@@ -1037,6 +1036,7 @@ const ExcalidrawWrapper = () => {
         />
 
         <AppSidebar excalidrawAPI={excalidrawAPI} />
+        <WorkspaceDashboard excalidrawAPI={excalidrawAPI} />
 
         {errorMessage && (
           <ErrorDialog onClose={() => setErrorMessage("")}>

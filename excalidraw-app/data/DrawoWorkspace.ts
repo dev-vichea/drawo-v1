@@ -13,6 +13,8 @@ import { appJotaiStore, atom } from "../app-jotai";
 export interface DrawoCollection {
   id: string;
   name: string;
+  icon?: string;
+  description?: string;
   color: string;
   createdAt: number;
 }
@@ -22,6 +24,9 @@ export interface DrawoBoardMeta {
   title: string;
   collectionId: string | null;
   isFavorite: boolean;
+  isTrash?: boolean;
+  author?: string;
+  previewSvg?: string;
   elementCount: number;
   updatedAt: number;
   createdAt: number;
@@ -46,6 +51,8 @@ const workspaceBoardsStore = createStore(
   "drawo-boards-store",
 );
 
+export const isWorkspaceDashboardOpenAtom = atom<boolean>(false);
+
 const COLLECTION_COLORS = [
   "#558ec5",
   "#6A89A7",
@@ -58,21 +65,151 @@ const COLLECTION_COLORS = [
 const createId = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+export const DEFAULT_COLLECTIONS: DrawoCollection[] = [
+  {
+    id: "col-private",
+    name: "Private",
+    icon: "🔒",
+    description:
+      "This is your private collection. No other team members can see it. Drag a scene to a different collection to make it visible to other team members.",
+    color: "#6366f1",
+    createdAt: 1700000000000,
+  },
+  {
+    id: "col-features",
+    name: "Features",
+    icon: "🚀",
+    description: "Feature specs, user stories, and architecture roadmaps.",
+    color: "#f97316",
+    createdAt: 1700000001000,
+  },
+  {
+    id: "col-things",
+    name: "Things",
+    icon: "❓",
+    description: "Explorations, experiments, and scratchpad diagrams.",
+    color: "#eab308",
+    createdAt: 1700000002000,
+  },
+  {
+    id: "col-main",
+    name: "Main",
+    icon: "🚩",
+    description: "Production diagrams, company assets, and shared standards.",
+    color: "#ef4444",
+    createdAt: 1700000003000,
+  },
+  {
+    id: "col-wireframes",
+    name: "Wireframes",
+    icon: "📐",
+    description: "User journey flows, low-fidelity wireframes, and UI mockups.",
+    color: "#3b82f6",
+    createdAt: 1700000004000,
+  },
+  {
+    id: "col-marketing",
+    name: "Marketing",
+    icon: "🧠",
+    description: "Campaign visuals, brand collateral, and presentation decks.",
+    color: "#ec4899",
+    createdAt: 1700000005000,
+  },
+  {
+    id: "col-engineering",
+    name: "Engineering",
+    icon: "🏗",
+    description: "System topologies, cloud microservices, and database schemas.",
+    color: "#10b981",
+    createdAt: 1700000006000,
+  },
+  {
+    id: "col-design",
+    name: "Design",
+    icon: "🎨",
+    description: "Design systems, layout sketches, and color schemes.",
+    color: "#8b5cf6",
+    createdAt: 1700000007000,
+  },
+  {
+    id: "col-components",
+    name: "Components",
+    icon: "🧩",
+    description: "Reusable diagram elements, templates, and libraries.",
+    color: "#06b6d4",
+    createdAt: 1700000008000,
+  },
+];
+
 const getDefaultCollections = (): DrawoCollection[] => {
-  const now = Date.now();
-  return [
-    { id: "col-work", name: "Work", color: "#558ec5", createdAt: now },
-    {
-      id: "col-design",
-      name: "System Design",
-      color: "#6A89A7",
-      createdAt: now,
-    },
-    { id: "col-personal", name: "Personal", color: "#88BDF2", createdAt: now },
-  ];
+  return DEFAULT_COLLECTIONS;
 };
 
+const getSeedBoards = (now: number): DrawoBoardMeta[] => [
+  {
+    id: "board-youtube",
+    title: "YouTube scenario",
+    collectionId: "col-private",
+    isFavorite: false,
+    author: "Torvalds Unix",
+    elementCount: 14,
+    updatedAt: now - 1000 * 60 * 60 * 24 * 60, // 2 months ago
+    createdAt: now - 1000 * 60 * 60 * 24 * 60,
+  },
+  {
+    id: "board-dispute",
+    title: "Dispute Analysis",
+    collectionId: "col-private",
+    isFavorite: false,
+    author: "Torvalds Unix",
+    elementCount: 28,
+    updatedAt: now - 1000 * 60 * 60 * 24 * 120, // 4 months ago
+    createdAt: now - 1000 * 60 * 60 * 24 * 120,
+  },
+  {
+    id: "board-untitled-1",
+    title: "Untitled scene",
+    collectionId: "col-private",
+    isFavorite: false,
+    author: "Torvalds Unix",
+    elementCount: 6,
+    updatedAt: now - 1000 * 60 * 60 * 24 * 60, // 2 months ago
+    createdAt: now - 1000 * 60 * 60 * 24 * 60,
+  },
+  {
+    id: "board-onboarding",
+    title: "Employee Onboarding Process",
+    collectionId: "col-private",
+    isFavorite: true,
+    author: "Torvalds Unix",
+    elementCount: 42,
+    updatedAt: now - 1000 * 60 * 60 * 24 * 365, // a year ago
+    createdAt: now - 1000 * 60 * 60 * 24 * 365,
+  },
+  {
+    id: "board-untitled-2",
+    title: "Untitled scene",
+    collectionId: "col-private",
+    isFavorite: false,
+    author: "Torvalds Unix",
+    elementCount: 18,
+    updatedAt: now - 1000 * 60 * 60 * 24 * 365, // a year ago
+    createdAt: now - 1000 * 60 * 60 * 24 * 365,
+  },
+  {
+    id: "board-mindmap",
+    title: "Mind Map",
+    collectionId: "col-private",
+    isFavorite: true,
+    author: "Torvalds Unix",
+    elementCount: 35,
+    updatedAt: now - 1000 * 60 * 60 * 24 * 365, // a year ago
+    createdAt: now - 1000 * 60 * 60 * 24 * 365,
+  },
+];
+
 const loadWorkspaceMeta = (): DrawoWorkspaceState => {
+  const now = Date.now();
   try {
     const raw = localStorage.getItem(WORKSPACE_META_KEY);
     if (raw) {
@@ -83,12 +220,31 @@ const loadWorkspaceMeta = (): DrawoWorkspaceState => {
         parsed.boards.length > 0 &&
         parsed.activeBoardId
       ) {
+        // Merge or upgrade collections
+        const existingCols = Array.isArray(parsed.collections) ? parsed.collections : [];
+        const mergedCols = [...DEFAULT_COLLECTIONS];
+        for (const ec of existingCols) {
+          if (!mergedCols.some((c) => c.id === ec.id)) {
+            mergedCols.push(ec);
+          }
+        }
+
+        // Ensure boards have author & collectionId mapped to private if null
+        const upgradedBoards = parsed.boards.map((b) => ({
+          ...b,
+          author: b.author || "Torvalds Unix",
+          collectionId: b.collectionId || "col-private",
+        }));
+
+        // If user only had 1-2 boards, add seed boards so the dashboard looks full
+        const finalBoards = upgradedBoards.length <= 2 
+          ? [...upgradedBoards, ...getSeedBoards(now).filter((sb) => !upgradedBoards.some((ub) => ub.id === sb.id))]
+          : upgradedBoards;
+
         return {
           activeBoardId: parsed.activeBoardId,
-          boards: parsed.boards,
-          collections: Array.isArray(parsed.collections)
-            ? parsed.collections
-            : getDefaultCollections(),
+          boards: finalBoards,
+          collections: mergedCols,
         };
       }
     }
@@ -96,21 +252,22 @@ const loadWorkspaceMeta = (): DrawoWorkspaceState => {
     // fallback to default state
   }
 
-  const now = Date.now();
+  const seed = getSeedBoards(now);
   const initialBoard: DrawoBoardMeta = {
     id: "board-main",
-    title: "Main Whiteboard",
-    collectionId: "col-work",
+    title: "Drawo Welcome Demo",
+    collectionId: "col-private",
     isFavorite: true,
-    elementCount: 0,
+    author: "Torvalds Unix",
+    elementCount: 15,
     updatedAt: now,
     createdAt: now,
   };
 
   const initialState: DrawoWorkspaceState = {
     activeBoardId: initialBoard.id,
-    boards: [initialBoard],
-    collections: getDefaultCollections(),
+    boards: [initialBoard, ...seed],
+    collections: DEFAULT_COLLECTIONS,
   };
 
   try {
@@ -432,7 +589,98 @@ export class DrawoWorkspace {
     }
   }
 
-  static createCollection(name: string) {
+  static openDashboard() {
+    appJotaiStore.set(isWorkspaceDashboardOpenAtom, true);
+  }
+
+  static closeDashboard() {
+    appJotaiStore.set(isWorkspaceDashboardOpenAtom, false);
+  }
+
+  static moveToTrash(boardId: string) {
+    const state = this.getState();
+    persistState({
+      ...state,
+      boards: state.boards.map((b) =>
+        b.id === boardId ? { ...b, isTrash: true, updatedAt: Date.now() } : b,
+      ),
+    });
+  }
+
+  static restoreFromTrash(boardId: string) {
+    const state = this.getState();
+    persistState({
+      ...state,
+      boards: state.boards.map((b) =>
+        b.id === boardId ? { ...b, isTrash: false, updatedAt: Date.now() } : b,
+      ),
+    });
+  }
+
+  static async emptyTrash(api?: ExcalidrawImperativeAPI) {
+    const state = this.getState();
+    const trashed = state.boards.filter((b) => b.isTrash);
+    for (const b of trashed) {
+      try {
+        await del(b.id, workspaceBoardsStore);
+      } catch {
+        // ignore
+      }
+    }
+    const remaining = state.boards.filter((b) => !b.isTrash);
+    if (remaining.length === 0) {
+      const now = Date.now();
+      const fallback: DrawoBoardMeta = {
+        id: `board-${createId()}`,
+        title: "Untitled Board 1",
+        collectionId: "col-private",
+        isFavorite: false,
+        author: "Torvalds Unix",
+        elementCount: 0,
+        updatedAt: now,
+        createdAt: now,
+      };
+      persistState({
+        ...state,
+        activeBoardId: fallback.id,
+        boards: [fallback],
+      });
+      if (api) {
+        api.updateScene({ elements: [], appState: { selectedElementIds: {} } });
+      }
+    } else {
+      persistState({
+        ...state,
+        boards: remaining,
+        activeBoardId: remaining.some((b) => b.id === state.activeBoardId)
+          ? state.activeBoardId
+          : remaining[0].id,
+      });
+    }
+  }
+
+  static async importBoardFile(
+    file: File,
+    api: ExcalidrawImperativeAPI,
+    collectionId?: string | null,
+  ) {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const elements = parsed.elements || [];
+      const title = file.name.replace(/\.(excalidraw|json)$/i, "") || "Imported Scene";
+      return await this.createBoard(api, {
+        title,
+        collectionId: collectionId || "col-private",
+        initialElements: elements,
+      });
+    } catch (err) {
+      console.error("Failed to import board file:", err);
+      return null;
+    }
+  }
+
+  static createCollection(name: string, icon = "📁", description = "") {
     const trimmed = name.trim();
     if (!trimmed) {
       return null;
@@ -443,6 +691,8 @@ export class DrawoWorkspace {
     const newCol: DrawoCollection = {
       id: `col-${createId()}`,
       name: trimmed,
+      icon,
+      description,
       color,
       createdAt: Date.now(),
     };
