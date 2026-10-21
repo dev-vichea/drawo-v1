@@ -53,6 +53,35 @@ export interface DrawoWorkspaceEntry {
   activeBoardId: string;
 }
 
+export interface DrawoUserPreferences {
+  theme: "light" | "dark" | "system";
+  initialRedirect:
+    | "dashboard"
+    | "privateCollection"
+    | "lastEditedScene"
+    | "lastVisitedScene";
+  autoRedirect: boolean;
+  emailNotifications: boolean;
+  aiSceneNaming: boolean;
+  showOldFonts: boolean;
+  pushToTalk: boolean;
+}
+
+export interface DrawoPersonalApiKey {
+  workspaceId: string;
+  partialKey: string;
+  createdAt: number;
+  lastUsedAt: number | null;
+}
+
+export interface DrawoExportRecord {
+  id: string;
+  workspaceId: string;
+  workspaceName: string;
+  sceneCount: number;
+  createdAt: number;
+}
+
 export interface DrawoUserProfile {
   uid: string;
   displayName: string;
@@ -61,10 +90,14 @@ export interface DrawoUserProfile {
   photoURL?: string | null;
   role: string;
   provider: "local" | "google" | "github" | "email";
+  linkedProviders?: string[];
   isCloudAuthenticated: boolean;
   authLoading?: boolean;
   workspaces: DrawoWorkspaceEntry[];
   activeWorkspaceId: string | null;
+  preferences?: DrawoUserPreferences;
+  apiKeys?: Record<string, DrawoPersonalApiKey>;
+  exportHistory?: DrawoExportRecord[];
   lastSyncedAt?: number | null;
 }
 
@@ -193,13 +226,25 @@ const mapFirebaseUserToProfile = (
     // ignore
   }
 
+  const linkedProviders =
+    user.providerData.length > 0
+      ? user.providerData.map((p) => p.providerId)
+      : [
+          provider === "google"
+            ? "google.com"
+            : provider === "github"
+            ? "github.com"
+            : "password",
+        ];
+
   return {
     ...existing,
     uid: user.uid,
     displayName,
     email: user.email || existing.email,
-    photoURL: user.photoURL || null,
+    photoURL: user.photoURL || existing.photoURL || null,
     provider,
+    linkedProviders,
     isCloudAuthenticated: true,
     authLoading: false,
     workspaces: userWorkspaces,
@@ -394,12 +439,15 @@ export const DrawoAuth = {
   updateUserProfile(updates: {
     displayName?: string;
     avatar?: string;
+    photoURL?: string | null;
   }): DrawoUserProfile {
     const current = this.getProfile();
     const next: DrawoUserProfile = {
       ...current,
       displayName: updates.displayName?.trim() || current.displayName,
       avatar: updates.avatar || current.avatar,
+      photoURL:
+        updates.photoURL !== undefined ? updates.photoURL : current.photoURL,
     };
 
     persistUserWorkspaces(next);
@@ -413,7 +461,153 @@ export const DrawoAuth = {
       }).catch(() => {});
     }
 
+    if (next.isCloudAuthenticated && next.uid) {
+      this.syncWorkspacesToCloud().catch(() => {});
+    }
+
     return next;
+  },
+
+  updatePreferences(partial: Partial<DrawoUserPreferences>): DrawoUserProfile {
+    const current = this.getProfile();
+    const basePrefs: DrawoUserPreferences = current.preferences || {
+      theme: "system",
+      initialRedirect: "dashboard",
+      autoRedirect: false,
+      emailNotifications: true,
+      aiSceneNaming: true,
+      showOldFonts: false,
+      pushToTalk: false,
+    };
+    const next: DrawoUserProfile = {
+      ...current,
+      preferences: { ...basePrefs, ...partial },
+    };
+    persistUserWorkspaces(next);
+    appJotaiStore.set(drawoAuthAtom, next);
+    if (next.isCloudAuthenticated && next.uid) {
+      this.syncWorkspacesToCloud().catch(() => {});
+    }
+    return next;
+  },
+
+  createOrRotateApiKey(workspaceId: string): {
+    fullKey: string;
+    record: DrawoPersonalApiKey;
+  } {
+    const current = this.getProfile();
+    const randA = Math.random().toString(36).slice(2, 12);
+    const randB = Math.random().toString(36).slice(2, 12);
+    const randC = Math.random().toString(36).slice(2, 10);
+    const fullKey = `drawo_pat_${randA}${randB}${randC}`;
+    const partialKey = `drawo_pat_${randA.slice(0, 4)}••••••••${randC.slice(
+      -4,
+    )}`;
+    const record: DrawoPersonalApiKey = {
+      workspaceId,
+      partialKey,
+      createdAt: Date.now(),
+      lastUsedAt: null,
+    };
+    const next: DrawoUserProfile = {
+      ...current,
+      apiKeys: {
+        ...(current.apiKeys || {}),
+        [workspaceId]: record,
+      },
+    };
+    persistUserWorkspaces(next);
+    appJotaiStore.set(drawoAuthAtom, next);
+    return { fullKey, record };
+  },
+
+  deleteApiKey(workspaceId: string): void {
+    const current = this.getProfile();
+    const nextKeys = { ...(current.apiKeys || {}) };
+    delete nextKeys[workspaceId];
+    const next: DrawoUserProfile = {
+      ...current,
+      apiKeys: nextKeys,
+    };
+    persistUserWorkspaces(next);
+    appJotaiStore.set(drawoAuthAtom, next);
+  },
+
+  recordExport(workspaceId: string, sceneCount: number): DrawoExportRecord {
+    const current = this.getProfile();
+    const ws = current.workspaces.find((w) => w.id === workspaceId);
+    const entry: DrawoExportRecord = {
+      id: `exp-${createId()}`,
+      workspaceId,
+      workspaceName: ws?.name || "My Workspace",
+      sceneCount,
+      createdAt: Date.now(),
+    };
+    const next: DrawoUserProfile = {
+      ...current,
+      exportHistory: [entry, ...(current.exportHistory || [])].slice(0, 20),
+    };
+    persistUserWorkspaces(next);
+    appJotaiStore.set(drawoAuthAtom, next);
+    return entry;
+  },
+
+  renameWorkspace(workspaceId: string, newName: string): void {
+    const trimmed = newName.trim();
+    if (!trimmed) {
+      return;
+    }
+    const current = this.getProfile();
+    const nextWorkspaces = current.workspaces.map((ws) =>
+      ws.id === workspaceId ? { ...ws, name: trimmed } : ws,
+    );
+    const next: DrawoUserProfile = {
+      ...current,
+      workspaces: nextWorkspaces,
+    };
+    persistUserWorkspaces(next);
+    appJotaiStore.set(drawoAuthAtom, next);
+    if (next.isCloudAuthenticated && next.uid) {
+      this.syncWorkspacesToCloud().catch(() => {});
+    }
+  },
+
+  deleteWorkspace(workspaceId: string): void {
+    const current = this.getProfile();
+    const remaining = current.workspaces.filter((ws) => ws.id !== workspaceId);
+    const nextActiveId =
+      current.activeWorkspaceId === workspaceId
+        ? remaining[0]?.id || null
+        : current.activeWorkspaceId;
+    const next: DrawoUserProfile = {
+      ...current,
+      workspaces: remaining,
+      activeWorkspaceId: nextActiveId,
+    };
+    persistUserWorkspaces(next);
+    appJotaiStore.set(drawoAuthAtom, next);
+    if (next.isCloudAuthenticated && next.uid) {
+      this.syncWorkspacesToCloud().catch(() => {});
+    }
+  },
+
+  connectProvider(providerId: string): void {
+    const current = this.getProfile();
+    const existing = current.linkedProviders || [
+      current.provider === "google"
+        ? "google.com"
+        : current.provider === "github"
+        ? "github.com"
+        : "password",
+    ];
+    if (!existing.includes(providerId)) {
+      const next: DrawoUserProfile = {
+        ...current,
+        linkedProviders: [...existing, providerId],
+      };
+      persistUserWorkspaces(next);
+      appJotaiStore.set(drawoAuthAtom, next);
+    }
   },
 
   async signInWithGoogle(): Promise<DrawoUserProfile> {

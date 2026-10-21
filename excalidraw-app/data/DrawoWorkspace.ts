@@ -65,12 +65,20 @@ export const WORKSPACE_PAGE_PATHS = [
   "/no-workspace",
   "/create-workspace",
   "/user-settings",
+  "/account",
+  "/account/my-profile",
+  "/account/preferences",
+  "/account/api-keys",
+  "/account/export",
+  "/account/my-workspaces",
+  "/account/delete",
   "/workspace",
 ] as const;
 
 export const isWorkspaceDashboardOpenAtom = atom<boolean>(
   typeof window !== "undefined" &&
-    WORKSPACE_PAGE_PATHS.includes(window.location.pathname as any),
+    (WORKSPACE_PAGE_PATHS.includes(window.location.pathname as any) ||
+      window.location.pathname.startsWith("/account/")),
 );
 
 const COLLECTION_COLORS = [

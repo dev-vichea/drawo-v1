@@ -35,6 +35,11 @@ import {
   type DrawoBoardScene,
 } from "../../data/DrawoWorkspace";
 
+import {
+  AccountSettingsView,
+  type AccountSettingsTab,
+} from "./AccountSettingsView";
+
 import "./WorkspaceDashboard.scss";
 
 interface WorkspaceDashboardProps {
@@ -284,8 +289,24 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   const workspace = useAtomValue(drawoWorkspaceAtom);
   const userProfile = useAtomValue(drawoAuthAtom);
 
+  const parseAccountTabFromPath = (path: string): AccountSettingsTab => {
+    if (path === "/account/preferences") {
+      return "preferences";
+    }
+    if (path === "/account/api-keys") {
+      return "api-keys";
+    }
+    if (path === "/account/export") {
+      return "export";
+    }
+    if (path === "/account/my-workspaces") {
+      return "my-workspaces";
+    }
+    return "my-profile";
+  };
+
   // Onboarding / screen flow state synced with browser pathname:
-  // "/login" | "/signup" | "/no-workspace" | "/create-workspace" | "/user-settings" | "/workspace"
+  // "/login" | "/signup" | "/no-workspace" | "/create-workspace" | "/account/*" | "/workspace"
   const [screenOverride, setScreenOverride] = useState<
     "auto" | "no-workspace" | "create-workspace" | "user-settings"
   >(() => {
@@ -296,11 +317,19 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
     if (path === "/create-workspace") {
       return "create-workspace";
     }
-    if (path === "/user-settings") {
+    if (
+      path === "/user-settings" ||
+      path === "/account" ||
+      path.startsWith("/account/")
+    ) {
       return "user-settings";
     }
     return "auto";
   });
+
+  const [accountTab, setAccountTab] = useState<AccountSettingsTab>(() =>
+    parseAccountTabFromPath(window.location.pathname),
+  );
 
   const navigatePage = (
     nextOverride:
@@ -318,7 +347,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
         : nextOverride === "create-workspace"
         ? "/create-workspace"
         : nextOverride === "user-settings"
-        ? "/user-settings"
+        ? `/account/${accountTab}`
         : !userProfile.isCloudAuthenticated
         ? "/login"
         : userProfile.workspaces.length === 0
@@ -362,18 +391,11 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   const [authPassword, setAuthPassword] = useState("drawo123456");
   const [authDisplayName, setAuthDisplayName] = useState("");
   const [authErrorMsg, setAuthErrorMsg] = useState<string | null>(null);
-  const [authStatusMsg, setAuthStatusMsg] = useState<string | null>(null);
   const [isAuthBusy, setIsAuthBusy] = useState(false);
 
   // Create Workspace state
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [includeStarterScenes, setIncludeStarterScenes] = useState(true);
-
-  // User Settings state
-  const [profileNameInput, setProfileNameInput] = useState(
-    userProfile.displayName,
-  );
-  const [selectedAvatar, setSelectedAvatar] = useState(userProfile.avatar);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const newColInputRef = useRef<HTMLInputElement>(null);
@@ -391,8 +413,13 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
           setScreenOverride("no-workspace");
         } else if (path === "/create-workspace") {
           setScreenOverride("create-workspace");
-        } else if (path === "/user-settings") {
+        } else if (
+          path === "/user-settings" ||
+          path === "/account" ||
+          path.startsWith("/account/")
+        ) {
           setScreenOverride("user-settings");
+          setAccountTab(parseAccountTabFromPath(path));
         } else {
           setScreenOverride("auto");
         }
@@ -403,7 +430,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
     return () => window.removeEventListener("popstate", handlePopState);
   }, [setIsOpen]);
 
-  // Keep browser URL pathname synced with the active full-page view
+  // Keep browser URL pathname synced with the active view
   useEffect(() => {
     if (!isOpen) {
       if (window.location.pathname !== "/") {
@@ -421,7 +448,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
       : screenOverride === "create-workspace"
       ? "/create-workspace"
       : screenOverride === "user-settings"
-      ? "/user-settings"
+      ? `/account/${accountTab}`
       : userProfile.workspaces.length === 0
       ? "/no-workspace"
       : "/workspace";
@@ -434,13 +461,9 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
     userProfile.isCloudAuthenticated,
     userProfile.workspaces.length,
     screenOverride,
+    accountTab,
     authMode,
   ]);
-
-  useEffect(() => {
-    setProfileNameInput(userProfile.displayName);
-    setSelectedAvatar(userProfile.avatar);
-  }, [userProfile.displayName, userProfile.avatar]);
 
   // Keyboard navigation: Escape closes, Cmd+P or Cmd+O toggles
   useEffect(() => {
@@ -648,19 +671,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
     }
   };
 
-  const handleSaveUserSettings = (e: React.FormEvent) => {
-    e.preventDefault();
-    DrawoAuth.updateUserProfile({
-      displayName: profileNameInput,
-      avatar: selectedAvatar,
-    });
-    setAuthStatusMsg("User settings saved!");
-    setTimeout(() => {
-      setAuthStatusMsg(null);
-      setScreenOverride("auto");
-    }, 900);
-  };
-
   if (!isOpen) {
     return null;
   }
@@ -669,7 +679,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   // 1. Not signed in -> Sign In / Sign Up screen
   // 2. Signed in, but 0 workspaces (or screenOverride === "no-workspace") -> "No workspace yet" screen
   // 3. screenOverride === "create-workspace" -> Create Workspace screen
-  // 4. screenOverride === "user-settings" -> User Settings screen
+  // 4. screenOverride === "user-settings" -> Full Excalidraw+ Account Settings screen (/account/*)
   // 5. Signed in and has >=1 workspaces -> Full Workspace Dashboard
   const activeScreen = !userProfile.isCloudAuthenticated
     ? "auth"
@@ -678,6 +688,26 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
     : userProfile.workspaces.length === 0
     ? "no-workspace"
     : "dashboard";
+
+  // =========================================================================
+  // FULL EXCALIDRAW+ ACCOUNT SETTINGS (/account/my-profile, /preferences, etc)
+  // =========================================================================
+  if (activeScreen === "user-settings") {
+    return (
+      <AccountSettingsView
+        userProfile={userProfile}
+        activeTab={accountTab}
+        onChangeTab={(nextTab) => {
+          setAccountTab(nextTab);
+          window.history.pushState({}, "", `/account/${nextTab}`);
+        }}
+        onBack={() => navigatePage("auto")}
+        onOpenCreateWorkspace={() => navigatePage("create-workspace")}
+        onOpenWorkspaceDashboard={() => navigatePage("auto", "/workspace")}
+        excalidrawAPI={excalidrawAPI}
+      />
+    );
+  }
 
   // =========================================================================
   // ONBOARDING / AUTH / NO-WORKSPACE / CREATE-WORKSPACE SCREENS
@@ -715,13 +745,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   type="button"
                   className="drawo-onboard-avatar-btn"
                   title={`${userProfile.displayName} (${userProfile.email})`}
-                  onClick={() =>
-                    navigatePage(
-                      activeScreen === "user-settings"
-                        ? "auto"
-                        : "user-settings",
-                    )
-                  }
+                  onClick={() => navigatePage("user-settings")}
                 >
                   {userProfile.photoURL ? (
                     <img
@@ -1172,70 +1196,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                           : "auto",
                       )
                     }
-                  >
-                    ← Back
-                  </button>
-                </>
-              )}
-
-              {/* ========================================================= */}
-              {/* SCREEN 4: USER SETTINGS                                   */}
-              {/* ========================================================= */}
-              {activeScreen === "user-settings" && (
-                <>
-                  <h1 className="drawo-onboard-title">
-                    User settings
-                    <span className="drawo-onboard-title__swoosh" />
-                  </h1>
-                  <p className="drawo-onboard-subtitle">
-                    Customize your display name and avatar across workspaces.
-                  </p>
-
-                  {authStatusMsg && (
-                    <div className="drawo-onboard-alert drawo-onboard-alert--success">
-                      {authStatusMsg}
-                    </div>
-                  )}
-
-                  <form
-                    className="drawo-onboard-form"
-                    onSubmit={handleSaveUserSettings}
-                  >
-                    <div className="drawo-auth-avatar-picker">
-                      {["🐧", "🚀", "⚡", "🦊", "🎨", "🤖", "🐱", "💎"].map(
-                        (emoji) => (
-                          <button
-                            key={emoji}
-                            type="button"
-                            className={clsx("drawo-auth-avatar-btn", {
-                              "drawo-auth-avatar-btn--active":
-                                selectedAvatar === emoji,
-                            })}
-                            onClick={() => setSelectedAvatar(emoji)}
-                          >
-                            {emoji}
-                          </button>
-                        ),
-                      )}
-                    </div>
-
-                    <TextField
-                      label="Display name"
-                      placeholder="Your name"
-                      value={profileNameInput}
-                      onChange={(val) => setProfileNameInput(val)}
-                      fullWidth
-                    />
-
-                    <button type="submit" className="drawo-onboard-primary-btn">
-                      Save settings
-                    </button>
-                  </form>
-
-                  <button
-                    type="button"
-                    className="drawo-onboard-link-btn"
-                    onClick={() => navigatePage("auto")}
                   >
                     ← Back
                   </button>
