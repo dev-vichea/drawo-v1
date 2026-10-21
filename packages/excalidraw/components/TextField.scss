@@ -19,7 +19,7 @@
   .ExcTextField {
     position: relative;
 
-    svg {
+    & > svg {
       position: absolute;
       top: 50%; // 50% is not exactly in the center of the input
       transform: translateY(-50%);
@@ -116,6 +116,35 @@
 
         & input {
           color: var(--ExcTextField--readonly--color);
+        }
+      }
+
+      .excalidraw-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0;
+        margin: 0;
+        min-width: unset;
+        min-height: unset;
+        width: 1.75rem;
+        height: 1.75rem;
+        cursor: pointer;
+        border-radius: 4px;
+
+        svg {
+          position: static !important;
+          transform: none !important;
+          width: 1.25rem;
+          height: 1.25rem;
+          color: var(--color-gray-50);
+        }
+
+        &:hover svg {
+          color: var(--color-on-surface);
         }
       }
     }

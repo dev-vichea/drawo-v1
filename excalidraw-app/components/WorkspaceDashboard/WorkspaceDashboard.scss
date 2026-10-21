@@ -1636,39 +1636,6 @@
   text-align: left;
 }
 
-.drawo-demo-accounts-row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-
-  .drawo-demo-accounts-label {
-    font-size: 0.6875rem;
-    color: var(--color-gray-60, #868e96);
-    font-weight: 600;
-  }
-
-  .drawo-demo-chip {
-    padding: 3px 8px;
-    border-radius: 999px;
-    border: 1px solid var(--default-border-color);
-    background-color: var(--color-surface-primary-container);
-    color: var(--color-primary);
-    font-size: 0.6875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: filter 0.15s ease;
-
-    &:hover:not(:disabled) {
-      filter: brightness(0.96);
-      border-color: var(--color-primary);
-    }
-  }
-}
-
 .drawo-create-ws-preview {
   width: 100%;
   display: flex;

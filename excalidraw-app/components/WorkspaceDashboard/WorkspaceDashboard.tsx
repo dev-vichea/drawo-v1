@@ -385,10 +385,12 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
 
-  // Sign In / Sign Up & Create Workspace form state (pre-filled with Firebase demo account for instant testing)
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
-  const [authEmail, setAuthEmail] = useState("vicheachheng001@gmail.com");
-  const [authPassword, setAuthPassword] = useState("drawo123456");
+  // Sign In / Sign Up & Create Workspace form state
+  const [authMode, setAuthMode] = useState<"signin" | "signup">(() => {
+    return window.location.pathname === "/signup" ? "signup" : "signin";
+  });
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
   const [authDisplayName, setAuthDisplayName] = useState("");
   const [authErrorMsg, setAuthErrorMsg] = useState<string | null>(null);
   const [isAuthBusy, setIsAuthBusy] = useState(false);
@@ -409,7 +411,13 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
         setIsOpen(false);
       } else {
         setIsOpen(true);
-        if (path === "/no-workspace") {
+        if (path === "/signup") {
+          setAuthMode("signup");
+          setScreenOverride("auto");
+        } else if (path === "/login") {
+          setAuthMode("signin");
+          setScreenOverride("auto");
+        } else if (path === "/no-workspace") {
           setScreenOverride("no-workspace");
         } else if (path === "/create-workspace") {
           setScreenOverride("create-workspace");
@@ -932,85 +940,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                     </button>
                   </form>
 
-                  {/* 1-Click Firebase Demo Account Quick Switcher */}
-                  <div className="drawo-demo-accounts-row">
-                    <span className="drawo-demo-accounts-label">
-                      Demo accounts:
-                    </span>
-                    <button
-                      type="button"
-                      className="drawo-demo-chip"
-                      disabled={isAuthBusy}
-                      onClick={async () => {
-                        setAuthEmail("orizyy08@gmail.com");
-                        setAuthPassword("drawo123456");
-                        setAuthErrorMsg(null);
-                        setIsAuthBusy(true);
-                        try {
-                          await DrawoAuth.signInWithEmail(
-                            "orizyy08@gmail.com",
-                            "drawo123456",
-                          );
-                          setScreenOverride("auto");
-                        } catch (err: any) {
-                          setAuthErrorMsg(err?.message || "Sign in failed.");
-                        } finally {
-                          setIsAuthBusy(false);
-                        }
-                      }}
-                    >
-                      ⚡ orizyy08@gmail.com
-                    </button>
-                    <button
-                      type="button"
-                      className="drawo-demo-chip"
-                      disabled={isAuthBusy}
-                      onClick={async () => {
-                        setAuthEmail("vicheachheng001@gmail.com");
-                        setAuthPassword("drawo123456");
-                        setAuthErrorMsg(null);
-                        setIsAuthBusy(true);
-                        try {
-                          await DrawoAuth.signInWithEmail(
-                            "vicheachheng001@gmail.com",
-                            "drawo123456",
-                          );
-                          setScreenOverride("auto");
-                        } catch (err: any) {
-                          setAuthErrorMsg(err?.message || "Sign in failed.");
-                        } finally {
-                          setIsAuthBusy(false);
-                        }
-                      }}
-                    >
-                      ⚡ vicheachheng001@gmail.com
-                    </button>
-                    <button
-                      type="button"
-                      className="drawo-demo-chip"
-                      disabled={isAuthBusy}
-                      onClick={async () => {
-                        setAuthEmail("demo@drawo.app");
-                        setAuthPassword("drawo123456");
-                        setAuthErrorMsg(null);
-                        setIsAuthBusy(true);
-                        try {
-                          await DrawoAuth.signInWithEmail(
-                            "demo@drawo.app",
-                            "drawo123456",
-                          );
-                          setScreenOverride("auto");
-                        } catch (err: any) {
-                          setAuthErrorMsg(err?.message || "Sign in failed.");
-                        } finally {
-                          setIsAuthBusy(false);
-                        }
-                      }}
-                    >
-                      ⚡ demo@drawo.app
-                    </button>
-                  </div>
-
                   <button
                     type="button"
                     className="drawo-onboard-link-btn"
@@ -1224,8 +1153,8 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                 </div>
 
                 <div className="drawo-onboard-footer__links">
-                  <a href="mailto:support@excalidraw.com">
-                    ✉ support@excalidraw.com
+                  <a href="mailto:support@drawo.app">
+                    ✉ support@drawo.app
                   </a>
                   <span className="sep">|</span>
                   <a
@@ -1237,7 +1166,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   </a>
                   <span className="sep">|</span>
                   <a
-                    href="https://github.com/excalidraw/excalidraw/issues"
+                    href="https://github.com/dev-vichea/drawo-v1/issues"
                     target="_blank"
                     rel="noreferrer"
                   >
