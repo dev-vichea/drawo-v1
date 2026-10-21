@@ -1,4 +1,4 @@
-import { eyeIcon } from "@excalidraw/excalidraw/components/icons";
+import { eyeIcon, palette } from "@excalidraw/excalidraw/components/icons";
 import { MainMenu } from "@excalidraw/excalidraw/index";
 import React from "react";
 
@@ -9,6 +9,21 @@ import type { Theme } from "@excalidraw/element/types";
 import { LanguageList } from "../app-language/LanguageList";
 
 import { saveDebugState } from "./DebugCanvas";
+
+const folderIcon = (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+  </svg>
+);
 
 export const AppMainMenu: React.FC<{
   onCollabDialogOpen: () => any;
@@ -26,12 +41,12 @@ export const AppMainMenu: React.FC<{
       <MainMenu.DefaultItems.Export />
       <MainMenu.DefaultItems.SaveAsImage />
       {props.onOpenWorkspace && (
-        <MainMenu.Item icon={<span>📁</span>} onSelect={props.onOpenWorkspace}>
+        <MainMenu.Item icon={folderIcon} onSelect={props.onOpenWorkspace}>
           Workspace Boards
         </MainMenu.Item>
       )}
       {props.onLoadDemo && (
-        <MainMenu.Item icon={<span>🎨</span>} onSelect={props.onLoadDemo}>
+        <MainMenu.Item icon={palette} onSelect={props.onLoadDemo}>
           Load Drawo Demo
         </MainMenu.Item>
       )}
