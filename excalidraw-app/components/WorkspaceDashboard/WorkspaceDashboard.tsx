@@ -918,6 +918,30 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                       className="drawo-demo-chip"
                       disabled={isAuthBusy}
                       onClick={async () => {
+                        setAuthEmail("orizyy08@gmail.com");
+                        setAuthPassword("drawo123456");
+                        setAuthErrorMsg(null);
+                        setIsAuthBusy(true);
+                        try {
+                          await DrawoAuth.signInWithEmail(
+                            "orizyy08@gmail.com",
+                            "drawo123456",
+                          );
+                          setScreenOverride("auto");
+                        } catch (err: any) {
+                          setAuthErrorMsg(err?.message || "Sign in failed.");
+                        } finally {
+                          setIsAuthBusy(false);
+                        }
+                      }}
+                    >
+                      ⚡ orizyy08@gmail.com
+                    </button>
+                    <button
+                      type="button"
+                      className="drawo-demo-chip"
+                      disabled={isAuthBusy}
+                      onClick={async () => {
                         setAuthEmail("vicheachheng001@gmail.com");
                         setAuthPassword("drawo123456");
                         setAuthErrorMsg(null);
@@ -1867,7 +1891,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                 </div>
                 <div className="drawo-ws-setting-row">
                   <span className="label">Firebase Project:</span>
-                  <span className="badge-plan">drawo-plus-app (Spark)</span>
+                  <span className="badge-plan">drawo-e4ac6 (Spark)</span>
                 </div>
                 <div className="drawo-ws-setting-row">
                   <span className="label">Total Boards:</span>

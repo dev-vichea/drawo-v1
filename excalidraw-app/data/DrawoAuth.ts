@@ -80,33 +80,17 @@ export interface FirebaseConfigData {
 const USER_PROFILE_STORAGE_KEY = "drawo-user-profile-v2";
 const DRAWO_FIREBASE_APP_NAME = "drawo-spark-auth-app";
 
-// Provisioned via firebase-mcp-server for vicheachheng001@gmail.com
+// Provisioned via firebase-mcp-server for orizyy08@gmail.com (project: drawo-e4ac6)
 const DEFAULT_FIREBASE_CONFIG: FirebaseConfigData = {
-  projectId: "drawo-plus-app",
-  appId: "1:991079515616:web:75365a2b967fbe2eaad785",
-  storageBucket: "drawo-plus-app.firebasestorage.app",
-  apiKey: "AIzaSyAJUc-Q0WpYwvSbKBCz1DX8dYycVqfxjpY",
-  authDomain: "drawo-plus-app.firebaseapp.com",
-  messagingSenderId: "991079515616",
+  projectId: "drawo-e4ac6",
+  appId: "1:113505088362:web:9fde3db5ef9a55f3e4eb13",
+  storageBucket: "drawo-e4ac6.firebasestorage.app",
+  apiKey: "AIzaSyBwsAoWleQMy9UwlivwJ9f7S7buMHexnFI",
+  authDomain: "drawo-e4ac6.firebaseapp.com",
+  messagingSenderId: "113505088362",
 };
 
 const getActiveFirebaseConfig = (): FirebaseConfigData => {
-  try {
-    const envRaw = import.meta.env.VITE_APP_FIREBASE_CONFIG;
-    if (envRaw) {
-      const parsed = JSON.parse(envRaw);
-      if (
-        parsed &&
-        parsed.apiKey &&
-        parsed.projectId &&
-        parsed.projectId !== "excalidraw-oss-dev"
-      ) {
-        return parsed;
-      }
-    }
-  } catch {
-    // fallback to DEFAULT_FIREBASE_CONFIG
-  }
   return DEFAULT_FIREBASE_CONFIG;
 };
 
