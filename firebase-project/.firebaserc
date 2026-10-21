@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "excalidraw-room-persistence"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }

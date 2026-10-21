@@ -356,10 +356,10 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
 
-  // Sign In / Sign Up & Create Workspace form state
+  // Sign In / Sign Up & Create Workspace form state (pre-filled with Firebase demo account for instant testing)
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
+  const [authEmail, setAuthEmail] = useState("vicheachheng001@gmail.com");
+  const [authPassword, setAuthPassword] = useState("drawo123456");
   const [authDisplayName, setAuthDisplayName] = useState("");
   const [authErrorMsg, setAuthErrorMsg] = useState<string | null>(null);
   const [authStatusMsg, setAuthStatusMsg] = useState<string | null>(null);
@@ -907,6 +907,61 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                         : "Sign in"}
                     </button>
                   </form>
+
+                  {/* 1-Click Firebase Demo Account Quick Switcher */}
+                  <div className="drawo-demo-accounts-row">
+                    <span className="drawo-demo-accounts-label">
+                      Demo accounts:
+                    </span>
+                    <button
+                      type="button"
+                      className="drawo-demo-chip"
+                      disabled={isAuthBusy}
+                      onClick={async () => {
+                        setAuthEmail("vicheachheng001@gmail.com");
+                        setAuthPassword("drawo123456");
+                        setAuthErrorMsg(null);
+                        setIsAuthBusy(true);
+                        try {
+                          await DrawoAuth.signInWithEmail(
+                            "vicheachheng001@gmail.com",
+                            "drawo123456",
+                          );
+                          setScreenOverride("auto");
+                        } catch (err: any) {
+                          setAuthErrorMsg(err?.message || "Sign in failed.");
+                        } finally {
+                          setIsAuthBusy(false);
+                        }
+                      }}
+                    >
+                      ⚡ vicheachheng001@gmail.com
+                    </button>
+                    <button
+                      type="button"
+                      className="drawo-demo-chip"
+                      disabled={isAuthBusy}
+                      onClick={async () => {
+                        setAuthEmail("demo@drawo.app");
+                        setAuthPassword("drawo123456");
+                        setAuthErrorMsg(null);
+                        setIsAuthBusy(true);
+                        try {
+                          await DrawoAuth.signInWithEmail(
+                            "demo@drawo.app",
+                            "drawo123456",
+                          );
+                          setScreenOverride("auto");
+                        } catch (err: any) {
+                          setAuthErrorMsg(err?.message || "Sign in failed.");
+                        } finally {
+                          setIsAuthBusy(false);
+                        }
+                      }}
+                    >
+                      ⚡ demo@drawo.app
+                    </button>
+                  </div>
 
                   <button
                     type="button"

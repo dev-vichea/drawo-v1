@@ -1204,8 +1204,11 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
   background-color: var(--default-bg-color, #ffffff);
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .drawo-onboard-doodles {
@@ -1279,7 +1282,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 28px;
+  padding: 12px 24px;
+  flex-shrink: 0;
 
   .drawo-onboard-logo {
     border: none;
@@ -1328,21 +1332,25 @@
   position: relative;
   z-index: 5;
   flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 24px 40px;
+  padding: 0 20px 12px;
+  overflow: hidden;
 }
 
 .drawo-onboard-card {
   position: relative;
   width: 100%;
-  max-width: 420px;
+  max-width: 410px;
+  max-height: calc(100vh - 64px);
+  box-sizing: border-box;
   background-color: var(--island-bg-color, #ffffff);
   border: 1px solid var(--default-border-color, rgba(0, 0, 0, 0.08));
   border-radius: 18px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08), 0 2px 12px rgba(0, 0, 0, 0.04);
-  padding: 36px 34px 28px;
+  padding: 22px 28px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1351,37 +1359,42 @@
 
 .drawo-onboard-welcome-tag {
   position: absolute;
-  top: -12px;
-  left: -10px;
+  top: -10px;
+  left: -8px;
   transform: rotate(-8deg);
   background-color: var(--color-surface-primary-container);
   color: var(--color-primary);
   border: 1px solid var(--color-primary);
   font-family: "Excalifont", "Virgil", cursive, sans-serif;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  padding: 5px 14px;
+  padding: 4px 12px;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .drawo-onboard-illustration {
   color: var(--text-primary-color);
-  margin-bottom: 18px;
+  margin-bottom: 8px;
+
+  svg {
+    width: 118px;
+    height: 62px;
+  }
 }
 
 .drawo-onboard-title {
   position: relative;
   font-family: "Excalifont", "Virgil", cursive, sans-serif;
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-primary-color);
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   display: inline-block;
 
   &__swoosh {
     display: block;
-    height: 4px;
+    height: 3.5px;
     width: 100%;
     margin-top: 2px;
     border-radius: 999px;
@@ -1395,10 +1408,10 @@
 }
 
 .drawo-onboard-subtitle {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--color-gray-60, #6b7280);
-  margin: 0 0 22px;
-  line-height: 1.45;
+  margin: 0 0 12px;
+  line-height: 1.4;
 }
 
 .drawo-signed-in-pill {
@@ -1515,22 +1528,22 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .drawo-onboard-oauth-btn {
   width: 100%;
-  height: 40px;
+  height: 36px;
   border-radius: 8px;
   border: 1px solid var(--default-border-color);
   background-color: var(--color-surface-lowest);
   color: var(--text-primary-color);
-  font-size: 0.8125rem;
+  font-size: 0.78rem;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 
@@ -1545,9 +1558,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 14px 0;
+  margin: 8px 0;
   color: var(--color-gray-60, #9ca3af);
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
 
   &::before,
   &::after {
@@ -1563,8 +1576,41 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
   text-align: left;
+}
+
+.drawo-demo-accounts-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+
+  .drawo-demo-accounts-label {
+    font-size: 0.6875rem;
+    color: var(--color-gray-60, #868e96);
+    font-weight: 600;
+  }
+
+  .drawo-demo-chip {
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--default-border-color);
+    background-color: var(--color-surface-primary-container);
+    color: var(--color-primary);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+
+    &:hover:not(:disabled) {
+      filter: brightness(0.96);
+      border-color: var(--color-primary);
+    }
+  }
 }
 
 .drawo-create-ws-preview {
@@ -1616,14 +1662,14 @@
 
 .drawo-onboard-footer {
   width: 100%;
-  margin-top: 26px;
-  padding-top: 6px;
+  margin-top: 12px;
+  padding-top: 2px;
 
   &__note {
-    font-size: 0.6875rem;
+    font-size: 0.65rem;
     color: var(--color-gray-60, #6b7280);
-    line-height: 1.5;
-    margin: 0 0 18px;
+    line-height: 1.4;
+    margin: 0 0 10px;
   }
 
   .drawo-onboard-inline-link {
@@ -1642,8 +1688,8 @@
     align-items: center;
     gap: 10px;
     color: var(--color-gray-60, #9ca3af);
-    font-size: 0.6875rem;
-    margin-bottom: 12px;
+    font-size: 0.65rem;
+    margin-bottom: 8px;
 
     &::before,
     &::after {
