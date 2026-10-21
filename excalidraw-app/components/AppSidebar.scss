@@ -158,7 +158,8 @@
       font-size: 0.75rem;
       font-weight: 500;
       cursor: pointer;
-      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease,
+        color 0.15s ease;
 
       &:hover {
         background-color: var(--button-hover-bg);

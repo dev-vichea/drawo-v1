@@ -126,7 +126,8 @@ export const DEFAULT_COLLECTIONS: DrawoCollection[] = [
     id: "col-engineering",
     name: "Engineering",
     icon: "🏗",
-    description: "System topologies, cloud microservices, and database schemas.",
+    description:
+      "System topologies, cloud microservices, and database schemas.",
     color: "#10b981",
     createdAt: 1700000006000,
   },
@@ -147,10 +148,6 @@ export const DEFAULT_COLLECTIONS: DrawoCollection[] = [
     createdAt: 1700000008000,
   },
 ];
-
-const getDefaultCollections = (): DrawoCollection[] => {
-  return DEFAULT_COLLECTIONS;
-};
 
 const getSeedBoards = (now: number): DrawoBoardMeta[] => [
   {
@@ -228,7 +225,9 @@ const loadWorkspaceMeta = (): DrawoWorkspaceState => {
         parsed.activeBoardId
       ) {
         // Merge or upgrade collections
-        const existingCols = Array.isArray(parsed.collections) ? parsed.collections : [];
+        const existingCols = Array.isArray(parsed.collections)
+          ? parsed.collections
+          : [];
         const mergedCols = [...DEFAULT_COLLECTIONS];
         for (const ec of existingCols) {
           if (!mergedCols.some((c) => c.id === ec.id)) {
@@ -244,9 +243,15 @@ const loadWorkspaceMeta = (): DrawoWorkspaceState => {
         }));
 
         // If user only had 1-2 boards, add seed boards so the dashboard looks full
-        const finalBoards = upgradedBoards.length <= 2 
-          ? [...upgradedBoards, ...getSeedBoards(now).filter((sb) => !upgradedBoards.some((ub) => ub.id === sb.id))]
-          : upgradedBoards;
+        const finalBoards =
+          upgradedBoards.length <= 2
+            ? [
+                ...upgradedBoards,
+                ...getSeedBoards(now).filter(
+                  (sb) => !upgradedBoards.some((ub) => ub.id === sb.id),
+                ),
+              ]
+            : upgradedBoards;
 
         return {
           activeBoardId: parsed.activeBoardId,
@@ -675,7 +680,8 @@ export class DrawoWorkspace {
       const text = await file.text();
       const parsed = JSON.parse(text);
       const elements = parsed.elements || [];
-      const title = file.name.replace(/\.(excalidraw|json)$/i, "") || "Imported Scene";
+      const title =
+        file.name.replace(/\.(excalidraw|json)$/i, "") || "Imported Scene";
       return await this.createBoard(api, {
         title,
         collectionId: collectionId || "col-private",

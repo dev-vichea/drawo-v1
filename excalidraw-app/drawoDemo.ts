@@ -491,9 +491,24 @@ export function getOnboardingProcessElements(): ExcalidrawElement[] {
   elements.push(header);
 
   const stages = [
-    { title: "Day 1", desc: "Hardware, SSH keys, Repo setup", color: "#38bdf8", bg: "rgba(56, 189, 248, 0.12)" },
-    { title: "Week 1", desc: "First PR merged & Mentor check-in", color: "#0284c7", bg: "#f0f9ff" },
-    { title: "Month 1", desc: "On-call shadow & feature delivery", color: "#10b981", bg: "#ecfdf5" },
+    {
+      title: "Day 1",
+      desc: "Hardware, SSH keys, Repo setup",
+      color: "#38bdf8",
+      bg: "rgba(56, 189, 248, 0.12)",
+    },
+    {
+      title: "Week 1",
+      desc: "First PR merged & Mentor check-in",
+      color: "#0284c7",
+      bg: "#f0f9ff",
+    },
+    {
+      title: "Month 1",
+      desc: "On-call shadow & feature delivery",
+      color: "#10b981",
+      bg: "#ecfdf5",
+    },
   ];
 
   stages.forEach((st, idx) => {

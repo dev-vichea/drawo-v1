@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { useAtom, useAtomValue } from "jotai";
 import clsx from "clsx";
 import { get } from "idb-keyval";
 
@@ -24,6 +23,7 @@ import {
 import type { ExcalidrawElement } from "@excalidraw/element/types";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 
+import { useAtom, useAtomValue } from "../../app-jotai";
 import {
   DrawoWorkspace,
   drawoWorkspaceAtom,
@@ -429,8 +429,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
           <div className="drawo-ws-collections-list">
             {workspace.collections.map((col) => {
               const isSelected =
-                selectedNav === "collection" &&
-                selectedCollectionId === col.id;
+                selectedNav === "collection" && selectedCollectionId === col.id;
               return (
                 <button
                   key={col.id}
@@ -562,10 +561,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
           {/* Quick Action Banners (Import Scenes + / Create Scene +) using Native FilledButton */}
           {(selectedNav === "collection" || selectedNav === "dashboard") && (
             <div className="drawo-action-banners-row">
-              <div
-                className="drawo-action-banner"
-                onClick={handleImportClick}
-              >
+              <div className="drawo-action-banner" onClick={handleImportClick}>
                 <div className="drawo-action-banner__icon drawo-action-banner__icon--import">
                   {presentationIcon}
                 </div>
@@ -579,10 +575,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                 </div>
               </div>
 
-              <div
-                className="drawo-action-banner"
-                onClick={handleCreateScene}
-              >
+              <div className="drawo-action-banner" onClick={handleCreateScene}>
                 <div className="drawo-action-banner__icon drawo-action-banner__icon--create">
                   {PlusIcon}
                 </div>

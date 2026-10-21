@@ -12,7 +12,6 @@ import {
 import { FilledButton } from "@excalidraw/excalidraw/components/FilledButton";
 import { TextField } from "@excalidraw/excalidraw/components/TextField";
 import { useUIAppState } from "@excalidraw/excalidraw/context/ui-appState";
-import { DEFAULT_SIDEBAR } from "@excalidraw/common";
 import React, { useState } from "react";
 
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
