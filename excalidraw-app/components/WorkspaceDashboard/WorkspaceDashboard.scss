@@ -2111,9 +2111,13 @@
 }
 
 .drawo-account-container {
-  max-width: 980px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 24px 36px 96px;
+  padding: 32px 48px 96px;
+
+  @media (max-width: 768px) {
+    padding: 20px 20px 80px;
+  }
 }
 
 .drawo-account-page {
@@ -2123,7 +2127,7 @@
     justify-content: space-between;
     gap: 16px;
     padding-bottom: 16px;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
     border-bottom: 1px solid var(--default-border-color);
 
     .drawo-account-page__title {
@@ -2134,15 +2138,15 @@
   }
 
   &__title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    margin: 0 0 28px;
+    margin: 0 0 24px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--default-border-color);
     color: var(--text-primary-color);
 
     &--danger {
-      margin-top: 72px;
+      margin-top: 56px;
     }
   }
 }
@@ -2150,28 +2154,36 @@
 .drawo-account-sections {
   display: flex;
   flex-direction: column;
-  gap: 32px;
 }
 
 .drawo-account-section {
-  padding: 4px 0;
-  border-radius: 8px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 24px 0;
+  border-top: 1px solid var(--default-border-color);
   transition: background-color 0.25s ease;
+
+  &:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
 
   &.highlighted {
     background-color: var(--color-surface-primary-container);
-    padding: 12px;
+    border-radius: 8px;
+    padding: 16px;
   }
 
-  &--row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 24px;
+  &__info {
+    width: 280px;
+    flex-shrink: 0;
   }
 
   &__title {
-    font-size: 1.0625rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--color-primary);
     margin: 0 0 4px;
@@ -2195,7 +2207,25 @@
   }
 
   &__body {
-    margin-top: 12px;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 0;
+
+    &__info {
+      width: 100%;
+    }
+
+    &__body {
+      width: 100%;
+    }
   }
 }
 
@@ -2210,15 +2240,15 @@
   cursor: pointer;
 
   .drawo-profile-avatar-box {
-    width: 72px;
-    height: 72px;
+    width: 64px;
+    height: 64px;
     border-radius: 10px;
     background-color: var(--island-bg-color);
     border: 1px solid var(--default-border-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.25rem;
+    font-size: 2rem;
     overflow: hidden;
 
     img {
@@ -2233,6 +2263,7 @@
     font-weight: 600;
     color: var(--color-primary);
     padding: 6px 0 2px;
+    text-align: center;
   }
 
   &:hover .drawo-profile-avatar-box {
@@ -2243,9 +2274,9 @@
 /* Profile Name Field matching screenshot */
 .drawo-profile-name-field {
   width: 100%;
-  max-width: 340px;
-  height: 40px;
-  padding: 0 14px;
+  max-width: 620px;
+  height: 42px;
+  padding: 0 16px;
   border-radius: 8px;
   border: 1px solid var(--default-border-color);
   background-color: var(--island-bg-color);
@@ -2253,7 +2284,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   font-size: 0.875rem;
   cursor: pointer;
   transition: border-color 0.15s ease;
@@ -2283,18 +2314,21 @@
   &__edit-icon {
     color: var(--color-gray-60, #9ca3af);
     flex-shrink: 0;
+    margin-left: auto;
   }
 }
 
 /* Account Email Row */
 .drawo-account-email-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+  max-width: 620px;
 
   &__icon {
     color: var(--text-primary-color);
     flex-shrink: 0;
+    margin-top: 2px;
   }
 
   &__addr {
@@ -2306,7 +2340,8 @@
   &__note {
     font-size: 0.75rem;
     color: var(--color-gray-60, #9ca3af);
-    margin-top: 3px;
+    margin-top: 4px;
+    line-height: 1.4;
 
     a {
       color: var(--color-primary);
@@ -2322,31 +2357,43 @@
 /* Linked Accounts Table */
 .drawo-linked-accounts-table {
   width: 100%;
-  max-width: 900px;
+  max-width: 620px;
 
   &__head {
     display: flex;
     justify-content: space-between;
-    padding: 4px;
+    align-items: center;
+    padding-bottom: 8px;
     font-size: 0.75rem;
     font-weight: 700;
     color: var(--text-primary-color);
+
+    span:last-child {
+      text-align: right;
+    }
   }
 
   &__row {
     display: flex;
     justify-content: space-between;
-    padding: 12px 4px 4px;
+    align-items: center;
+    padding: 14px 0 4px;
     font-size: 0.875rem;
     color: var(--text-primary-color);
+
+    span:last-child {
+      text-align: right;
+    }
   }
 }
 
 /* Account Buttons */
 .drawo-account-btn-group {
   display: flex;
+  flex-direction: row;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
 }
 
 .drawo-account-btn {
@@ -2933,5 +2980,71 @@
   code {
     font-size: 0.75rem;
     word-break: break-all;
+  }
+}
+
+/* Responsive Mobile Navigation Drawer */
+.drawo-account-mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--default-border-color);
+  background: var(--island-bg-color);
+  color: var(--text-primary-color);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: var(--button-hover-bg);
+  }
+}
+
+.drawo-account-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .drawo-account-settings-shell {
+    --settings-sidebar-offset: 0px;
+  }
+
+  .drawo-account-mobile-menu-btn {
+    display: inline-flex;
+  }
+
+  .drawo-account-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 435;
+    background-color: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+  }
+
+  .drawo-account-sidebar {
+    transform: translateX(-110%);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+
+    &.open {
+      transform: translateX(0);
+    }
+  }
+
+  .drawo-account-topbar {
+    left: 0;
+    padding: 10px 16px;
+    gap: 12px;
+  }
+
+  .drawo-account-main {
+    padding-left: 0;
+  }
+
+  .drawo-account-container {
+    padding: 20px 16px 80px;
   }
 }
