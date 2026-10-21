@@ -241,10 +241,13 @@
     }
 
     &.is-active {
-      background-color: var(--color-surface-high);
-      border-color: var(--default-border-color);
-      border-left: 3px solid var(--color-primary);
+      border-color: var(--color-primary);
+      background-color: var(--island-bg-color);
       box-shadow: none;
+
+      &:hover {
+        background-color: var(--button-hover-bg);
+      }
     }
 
     .drawo-board-card__top {
