@@ -1,0 +1,14 @@
+{
+  "name": "drawo-collab-server",
+  "version": "1.0.0",
+  "description": "Stateless real-time collaboration WebSocket relay server for Drawo",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
