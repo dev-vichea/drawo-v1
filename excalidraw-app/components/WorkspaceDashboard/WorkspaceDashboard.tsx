@@ -348,7 +348,8 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
         ? "/create-workspace"
         : nextOverride === "user-settings"
         ? `/account/${accountTab}`
-        : !userProfile.isCloudAuthenticated
+        : !userProfile.isCloudAuthenticated &&
+          userProfile.workspaces.length === 0
         ? "/login"
         : userProfile.workspaces.length === 0
         ? "/no-workspace"
@@ -366,6 +367,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   };
 
   const [isWsSwitcherOpen, setIsWsSwitcherOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [selectedNav, setSelectedNav] = useState<
     "collection" | "dashboard" | "settings" | "members" | "trash"
@@ -446,11 +448,13 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
       return;
     }
 
-    const desiredPath = !userProfile.isCloudAuthenticated
-      ? authMode === "signup"
-        ? "/signup"
-        : "/login"
-      : screenOverride === "no-workspace"
+    const desiredPath =
+      !userProfile.isCloudAuthenticated &&
+      userProfile.workspaces.length === 0
+        ? authMode === "signup"
+          ? "/signup"
+          : "/login"
+        : screenOverride === "no-workspace"
       ? "/no-workspace"
       : screenOverride === "create-workspace"
       ? "/create-workspace"
@@ -688,13 +692,14 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   // 3. screenOverride === "create-workspace" -> Create Workspace screen
   // 4. screenOverride === "user-settings" -> Full Excalidraw+ Account Settings screen (/account/*)
   // 5. Signed in and has >=1 workspaces -> Full Workspace Dashboard
-  const activeScreen = !userProfile.isCloudAuthenticated
-    ? "auth"
-    : screenOverride !== "auto"
-    ? screenOverride
-    : userProfile.workspaces.length === 0
-    ? "no-workspace"
-    : "dashboard";
+  const activeScreen =
+    !userProfile.isCloudAuthenticated && userProfile.workspaces.length === 0
+      ? "auth"
+      : screenOverride !== "auto"
+      ? screenOverride
+      : userProfile.workspaces.length === 0
+      ? "no-workspace"
+      : "dashboard";
 
   // =========================================================================
   // FULL EXCALIDRAW+ ACCOUNT SETTINGS (/account/my-profile, /preferences, etc)
@@ -1185,8 +1190,43 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
         }}
         data-testid="drawo-workspace-dashboard"
       >
+        {/* Mobile Backdrop for sidebar drawer */}
+        {isMobileSidebarOpen && (
+          <div
+            className="drawo-dashboard-sidebar-backdrop"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMobileSidebarOpen(false);
+            }}
+          />
+        )}
+
         {/* Left Sidebar */}
-        <aside className="drawo-dashboard-sidebar">
+        <nav
+          aria-label="Collections and workspaces"
+          className={clsx("drawo-dashboard-sidebar", {
+            "is-mobile-open": isMobileSidebarOpen,
+          })}
+        >
+          {/* Mobile Drawer Header */}
+          <div className="drawo-sidebar-mobile-header">
+            <span className="drawo-sidebar-mobile-header__title">
+              Collections & Workspaces
+            </span>
+            <button
+              type="button"
+              className="drawo-sidebar-mobile-close-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMobileSidebarOpen(false);
+              }}
+              title="Close menu"
+              aria-label="Close menu"
+            >
+              {CloseIcon}
+            </button>
+          </div>
+
           {/* Workspace Switcher Header */}
           <div
             className="drawo-ws-switcher-wrap"
@@ -1277,7 +1317,10 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
               className={clsx("drawo-ws-nav__item", {
                 "drawo-ws-nav__item--active": selectedNav === "dashboard",
               })}
-              onClick={() => setSelectedNav("dashboard")}
+              onClick={() => {
+                setSelectedNav("dashboard");
+                setIsMobileSidebarOpen(false);
+              }}
             >
               <span className="drawo-ws-nav__icon">{gridIcon}</span>
               <span>Dashboard</span>
@@ -1286,7 +1329,10 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
               className={clsx("drawo-ws-nav__item", {
                 "drawo-ws-nav__item--active": selectedNav === "settings",
               })}
-              onClick={() => setSelectedNav("settings")}
+              onClick={() => {
+                setSelectedNav("settings");
+                setIsMobileSidebarOpen(false);
+              }}
             >
               <span className="drawo-ws-nav__icon">{settingsIcon}</span>
               <span>Workspace settings</span>
@@ -1295,7 +1341,10 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
               className={clsx("drawo-ws-nav__item", {
                 "drawo-ws-nav__item--active": selectedNav === "members",
               })}
-              onClick={() => setSelectedNav("members")}
+              onClick={() => {
+                setSelectedNav("members");
+                setIsMobileSidebarOpen(false);
+              }}
             >
               <span className="drawo-ws-nav__icon">{usersIcon}</span>
               <span>Team members</span>
@@ -1304,7 +1353,10 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
               className={clsx("drawo-ws-nav__item", {
                 "drawo-ws-nav__item--active": selectedNav === "trash",
               })}
-              onClick={() => setSelectedNav("trash")}
+              onClick={() => {
+                setSelectedNav("trash");
+                setIsMobileSidebarOpen(false);
+              }}
             >
               <span className="drawo-ws-nav__icon">{TrashIcon}</span>
               <span>Trash</span>
@@ -1336,6 +1388,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   onClick={() => {
                     setSelectedNav("collection");
                     setSelectedCollectionId(col.id);
+                    setIsMobileSidebarOpen(false);
                   }}
                 >
                   <span className="drawo-ws-col-item__icon">
@@ -1377,7 +1430,10 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
           {/* User Profile Footer */}
           <div
             className="drawo-ws-user-footer"
-            onClick={() => setScreenOverride("user-settings")}
+            onClick={() => {
+              setScreenOverride("user-settings");
+              setIsMobileSidebarOpen(false);
+            }}
             title="User settings & account"
           >
             <div className="drawo-ws-user-badge">
@@ -1408,49 +1464,76 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
               Sign out
             </button>
           </div>
-        </aside>
+        </nav>
 
         {/* Main Content Area */}
         <main className="drawo-dashboard-main">
           {/* Main Top Header */}
           <header className="drawo-main-header">
             <div className="drawo-main-header__left">
-              <div className="drawo-main-header__title-row">
-                <span className="drawo-main-header__icon">
+              <button
+                type="button"
+                className="drawo-mobile-sidebar-toggle"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMobileSidebarOpen(true);
+                }}
+                title="Open collections menu"
+                aria-label="Open collections menu"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
+              <div className="drawo-main-header__text">
+                <div className="drawo-main-header__title-row">
+                  <span className="drawo-main-header__icon">
+                    {selectedNav === "dashboard"
+                      ? "⊞"
+                      : selectedNav === "settings"
+                      ? "⚙"
+                      : selectedNav === "members"
+                      ? "👥"
+                      : selectedNav === "trash"
+                      ? "🗑"
+                      : activeCollection.icon || "🔒"}
+                  </span>
+                  <h2 className="drawo-main-header__title">
+                    {selectedNav === "dashboard"
+                      ? "Dashboard"
+                      : selectedNav === "settings"
+                      ? "Workspace Settings"
+                      : selectedNav === "members"
+                      ? "Team Members"
+                      : selectedNav === "trash"
+                      ? "Trash"
+                      : activeCollection.name}
+                  </h2>
+                </div>
+                <p className="drawo-main-header__subtitle">
                   {selectedNav === "dashboard"
-                    ? "⊞"
+                    ? "Overview of all your boards and drawings across all collections."
                     : selectedNav === "settings"
-                    ? "⚙"
+                    ? "Manage workspace preferences, create new workspaces, and sync to Firebase."
                     : selectedNav === "members"
-                    ? "👥"
+                    ? "Manage collaborators, permission roles, and guest links."
                     : selectedNav === "trash"
-                    ? "🗑"
-                    : activeCollection.icon || "🔒"}
-                </span>
-                <h2 className="drawo-main-header__title">
-                  {selectedNav === "dashboard"
-                    ? "Dashboard"
-                    : selectedNav === "settings"
-                    ? "Workspace Settings"
-                    : selectedNav === "members"
-                    ? "Team Members"
-                    : selectedNav === "trash"
-                    ? "Trash"
-                    : activeCollection.name}
-                </h2>
+                    ? "Deleted boards are saved here. You can restore them or empty the trash."
+                    : activeCollection.description ||
+                      "This is your collection. Drag a scene to a different collection to reorganize."}
+                </p>
               </div>
-              <p className="drawo-main-header__subtitle">
-                {selectedNav === "dashboard"
-                  ? "Overview of all your boards and drawings across all collections."
-                  : selectedNav === "settings"
-                  ? "Manage workspace preferences, create new workspaces, and sync to Firebase."
-                  : selectedNav === "members"
-                  ? "Manage collaborators, permission roles, and guest links."
-                  : selectedNav === "trash"
-                  ? "Deleted boards are saved here. You can restore them or empty the trash."
-                  : activeCollection.description ||
-                    "This is your collection. Drag a scene to a different collection to reorganize."}
-              </p>
             </div>
 
             <div className="drawo-main-header__actions">

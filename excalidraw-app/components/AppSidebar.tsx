@@ -218,11 +218,12 @@ export const AppSidebar: React.FC<{
               <span className="drawo-workspace-header__icon">{folderIcon}</span>
               <span>Workspace</span>
             </h3>
-            <div style={{ display: "flex", gap: "6px" }}>
+            <div className="drawo-workspace-header__actions">
               <FilledButton
                 size="medium"
                 variant="outlined"
                 label="Full Dashboard"
+                className="drawo-ws-header-btn"
                 onClick={() => {
                   setIsDashboardOpen(true);
                 }}
@@ -235,6 +236,7 @@ export const AppSidebar: React.FC<{
                 color="primary"
                 icon={PlusIcon}
                 label="New Board"
+                className="drawo-ws-header-btn"
                 onClick={() => {
                   if (excalidrawAPI) {
                     const colId =

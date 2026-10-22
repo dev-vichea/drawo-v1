@@ -507,7 +507,8 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
       )}
 
       {/* Left Fixed Sidebar matching SettingsContainer-DhW50fZ0.js */}
-      <aside
+      <nav
+        aria-label="Account navigation"
         className={clsx("drawo-account-sidebar", {
           open: isMobileSidebarOpen,
         })}
@@ -607,7 +608,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
             Sign out
           </button>
         </nav>
-      </aside>
+      </nav>
 
       {/* Top Fixed Header Bar with Centered Search & ESC Close */}
       <header className="drawo-account-topbar">
