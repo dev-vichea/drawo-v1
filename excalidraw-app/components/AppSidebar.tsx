@@ -214,15 +214,18 @@ export const AppSidebar: React.FC<{
           data-testid="drawo-workspace-panel"
         >
           <div className="drawo-workspace-header">
-            <h3 className="drawo-workspace-header__title">
-              <span className="drawo-workspace-header__icon">{folderIcon}</span>
-              <span>Workspace</span>
-            </h3>
+            <div className="drawo-workspace-header__top">
+              <h3 className="drawo-workspace-header__title">
+                <span className="drawo-workspace-header__icon">{folderIcon}</span>
+                <span>Workspace</span>
+              </h3>
+            </div>
             <div className="drawo-workspace-header__actions">
               <FilledButton
                 size="medium"
                 variant="outlined"
                 label="Full Dashboard"
+                fullWidth
                 className="drawo-ws-header-btn"
                 onClick={() => {
                   setIsDashboardOpen(true);
@@ -236,6 +239,7 @@ export const AppSidebar: React.FC<{
                 color="primary"
                 icon={PlusIcon}
                 label="New Board"
+                fullWidth
                 className="drawo-ws-header-btn"
                 onClick={() => {
                   if (excalidrawAPI) {
