@@ -79,9 +79,9 @@ export interface DrawoLogoProps {
  * Drawo Brand Logo with icon and stylized typography.
  */
 export const DrawoLogo: React.FC<DrawoLogoProps> = ({
-  size = 42,
+  size = 44,
   withText = true,
-  textSize = "42px",
+  textSize = "44px",
   color = "var(--color-primary)",
   className = "",
   style,
@@ -92,7 +92,7 @@ export const DrawoLogo: React.FC<DrawoLogoProps> = ({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: "12px",
+        gap: "14px",
         userSelect: "none",
         ...style,
       }}
@@ -100,15 +100,18 @@ export const DrawoLogo: React.FC<DrawoLogoProps> = ({
       <DrawoLogoIcon size={size} color={color} />
       {withText && (
         <span
+          className="excalifont"
           style={{
             fontSize: textSize,
-            fontWeight: 800,
-            letterSpacing: "-0.5px",
+            fontWeight: 700,
+            letterSpacing: "3px",
             color: "var(--color-on-surface, #1e293b)",
             lineHeight: 1,
+            fontFamily: "Excalifont, Virgil, cursive, sans-serif",
+            textTransform: "uppercase",
           }}
         >
-          drawo
+          DRAWO
         </span>
       )}
     </div>

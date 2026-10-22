@@ -38,8 +38,8 @@ export const AppWelcomeScreen: React.FC<{
       <WelcomeScreen.Center>
         <div
           style={{
-            fontSize: "46px",
-            fontWeight: 800,
+            fontSize: "48px",
+            fontWeight: 700,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -48,8 +48,19 @@ export const AppWelcomeScreen: React.FC<{
             userSelect: "none",
           }}
         >
-          <DrawoLogoIcon size={46} color="var(--color-primary)" />
-          <span>drawo</span>
+          <DrawoLogoIcon size={48} color="var(--color-primary)" />
+          <span
+            className="excalifont"
+            style={{
+              fontFamily: "Excalifont, Virgil, cursive, sans-serif",
+              letterSpacing: "3px",
+              color: "var(--color-on-surface, #1e293b)",
+              textTransform: "uppercase",
+              lineHeight: 1,
+            }}
+          >
+            DRAWO
+          </span>
         </div>
         <WelcomeScreen.Center.Heading>
           {headingContent}
