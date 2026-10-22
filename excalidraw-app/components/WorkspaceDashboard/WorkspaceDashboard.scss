@@ -380,12 +380,22 @@
   padding: 24px 36px 16px;
   gap: 20px;
 
-  &__left {
+  &__top-bar {
+    order: 2;
+    display: flex;
+    align-items: center;
+
+    .drawo-mobile-sidebar-toggle {
+      display: none;
+    }
+  }
+
+  &__row {
+    order: 1;
     flex: 1;
     min-width: 0;
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
+    flex-direction: column;
   }
 
   &__text {
@@ -426,6 +436,58 @@
     align-items: center;
     gap: 12px;
     flex-shrink: 0;
+  }
+
+  .drawo-mobile-header-btns {
+    display: none;
+  }
+}
+
+.drawo-header-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: var(--border-radius-md, 8px);
+  border: 1px solid var(--default-border-color);
+  background-color: var(--island-bg-color);
+  color: var(--text-primary-color);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, transform 0.05s ease;
+
+  &:hover {
+    background-color: var(--button-hover-bg);
+    border-color: var(--color-primary);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  &--primary {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #ffffff;
+
+    &:hover {
+      background-color: var(--color-brand-hover, #1971c2);
+      border-color: var(--color-brand-hover, #1971c2);
+      color: #ffffff;
+    }
+
+    svg {
+      stroke: currentColor;
+    }
   }
 }
 
@@ -604,12 +666,12 @@
 
   @media (max-width: 820px) {
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    gap: 14px;
   }
 
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
-    gap: 14px;
+  @media (max-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 }
 
@@ -3192,16 +3254,16 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
     border-radius: 8px;
     border: 1px solid var(--default-border-color);
     background-color: var(--island-bg-color);
     color: var(--text-primary-color);
     cursor: pointer;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin: 0;
     transition: background-color 0.15s ease;
 
     &:hover {
@@ -3210,24 +3272,143 @@
   }
 
   .drawo-main-header {
-    padding: 14px 16px 12px;
-    gap: 12px;
+    padding: 12px 16px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 
-    &__title {
-      font-size: 1.125rem;
-    }
+    &__top-bar {
+      order: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
 
-    &__subtitle {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      font-size: 0.75rem;
-      line-height: 1.35;
+      .drawo-mobile-sidebar-toggle {
+        display: inline-flex;
+      }
     }
 
     &__actions {
+      display: flex;
+      align-items: center;
       gap: 8px;
+      margin-left: auto;
+    }
+
+    &__row {
+      order: 2;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      gap: 10px;
+    }
+
+    &__text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    &__title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+    }
+
+    &__icon {
+      font-size: 1.15rem;
+      line-height: 1;
+    }
+
+    &__title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin: 0;
+    }
+
+    &__subtitle {
+      display: none !important;
+    }
+
+    .drawo-mobile-header-btns {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+  }
+
+  .drawo-action-banners-row {
+    display: none !important;
+  }
+
+  .drawo-scenes-grid-container {
+    padding: 6px 14px 28px;
+  }
+
+  .drawo-scenes-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
+  }
+
+  .drawo-scene-card {
+    border-radius: 10px;
+
+    &__thumb {
+      aspect-ratio: 16 / 11;
+      border-radius: 8px;
+    }
+
+    &__time {
+      font-size: 0.625rem;
+      padding: 1px 4px;
+      bottom: 4px;
+      right: 4px;
+      border-radius: 4px;
+    }
+
+    &__info {
+      padding: 6px 1px 2px;
+      gap: 1px;
+    }
+
+    &__title {
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+
+    &__sub-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    &__author {
+      font-size: 0.6875rem;
+      max-width: 75px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &__actions {
+      .drawo-scene-btn {
+        width: 22px;
+        height: 22px;
+        padding: 2px;
+
+        svg {
+          width: 0.75rem;
+          height: 0.75rem;
+        }
+      }
     }
   }
 
@@ -3238,6 +3419,16 @@
       font-size: 0.75rem;
       padding: 4px 0;
     }
+  }
+
+  .drawo-close-modal-btn {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid var(--default-border-color);
+    background-color: var(--island-bg-color);
   }
 
   .drawo-onboard-card {

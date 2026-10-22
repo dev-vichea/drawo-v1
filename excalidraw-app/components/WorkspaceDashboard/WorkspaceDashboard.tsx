@@ -1470,7 +1470,8 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
         <main className="drawo-dashboard-main">
           {/* Main Top Header */}
           <header className="drawo-main-header">
-            <div className="drawo-main-header__left">
+            {/* Top Bar for Mobile & Actions: [≡] hamburger toggle on left, Sort + [✕] on right */}
+            <div className="drawo-main-header__top-bar">
               <button
                 type="button"
                 className="drawo-mobile-sidebar-toggle"
@@ -1496,6 +1497,35 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   <line x1="3" y1="18" x2="21" y2="18" />
                 </svg>
               </button>
+
+              <div className="drawo-main-header__actions">
+                {(selectedNav === "collection" ||
+                  selectedNav === "dashboard") && (
+                  <div className="drawo-sort-select-wrap">
+                    <select
+                      className="drawo-sort-select"
+                      value={sortMode}
+                      onChange={(e: any) => setSortMode(e.target.value)}
+                    >
+                      <option value="last-created">Last created ⇅</option>
+                      <option value="recently-edited">Recently edited</option>
+                      <option value="title">Alphabetical (A-Z)</option>
+                    </select>
+                  </div>
+                )}
+
+                <button
+                  className="drawo-close-modal-btn"
+                  title="Back to canvas editor (Esc)"
+                  onClick={closeToEditor}
+                >
+                  {CloseIcon}
+                </button>
+              </div>
+            </div>
+
+            {/* Title & Mobile Quick Action Buttons Row */}
+            <div className="drawo-main-header__row">
               <div className="drawo-main-header__text">
                 <div className="drawo-main-header__title-row">
                   <span className="drawo-main-header__icon">
@@ -1534,33 +1564,41 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                       "This is your collection. Drag a scene to a different collection to reorganize."}
                 </p>
               </div>
-            </div>
 
-            <div className="drawo-main-header__actions">
               {(selectedNav === "collection" ||
                 selectedNav === "dashboard") && (
-                <div className="drawo-sort-select-wrap">
-                  <select
-                    className="drawo-sort-select"
-                    value={sortMode}
-                    onChange={(e: any) => setSortMode(e.target.value)}
+                <div className="drawo-mobile-header-btns">
+                  <button
+                    type="button"
+                    className="drawo-header-icon-btn"
+                    title="Import scenes (.excalidraw, .json)"
+                    aria-label="Import scenes"
+                    onClick={handleImportClick}
                   >
-                    <option value="last-created">Last created ⇅</option>
-                    <option value="recently-edited">Recently edited</option>
-                    <option value="title">Alphabetical (A-Z)</option>
-                  </select>
+                    {presentationIcon}
+                  </button>
+                  <button
+                    type="button"
+                    className="drawo-header-icon-btn drawo-header-icon-btn--primary"
+                    title="Create scene"
+                    aria-label="Create scene"
+                    onClick={handleCreateScene}
+                  >
+                    {PlusIcon}
+                  </button>
                 </div>
               )}
-
-              <button
-                className="drawo-close-modal-btn"
-                title="Back to canvas editor (Esc)"
-                onClick={closeToEditor}
-              >
-                {CloseIcon}
-              </button>
             </div>
           </header>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".excalidraw,.json"
+            multiple
+            onChange={handleFileChange}
+            style={{ display: "none" }}
+          />
 
           {/* Quick Action Banners */}
           {(selectedNav === "collection" || selectedNav === "dashboard") && (
@@ -1592,15 +1630,6 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   </div>
                 </div>
               </div>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".excalidraw,.json"
-                multiple
-                onChange={handleFileChange}
-                style={{ display: "none" }}
-              />
             </div>
           )}
 
