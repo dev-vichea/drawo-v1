@@ -192,7 +192,7 @@
           color: #ffffff;
 
           &:hover {
-            background-color: var(--color-brand-hover, #1971c2);
+            background-color: var(--color-brand-hover);
             color: #ffffff;
           }
 
@@ -229,10 +229,11 @@
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      padding: 0.32rem 0.55rem;
-      border-radius: var(--border-radius-md);
-      border: 1px solid var(--default-border-color);
-      background-color: var(--island-bg-color);
+      padding: 0.32rem 0.6rem;
+      border-radius: var(--border-radius-lg, 8px);
+      border: none;
+      box-shadow: 0 0 0 1px var(--color-surface-lowest);
+      background-color: var(--color-surface-low);
       color: var(--color-on-surface);
       font-size: 0.75rem;
       font-weight: 500;
@@ -242,7 +243,7 @@
       min-height: 28px;
       height: 28px;
       box-sizing: border-box;
-      transition: background-color 0.15s ease, border-color 0.15s ease,
+      transition: background-color 0.15s ease, box-shadow 0.15s ease,
         color 0.15s ease;
 
       .drawo-chip-text {
@@ -253,27 +254,25 @@
       }
 
       &:hover {
-        background-color: var(--button-hover-bg);
+        background-color: var(--color-surface-mid);
       }
 
       &.is-active {
-        background-color: var(--color-primary);
-        border-color: var(--color-primary);
-        color: var(--color-surface-lowest);
+        background-color: var(--color-surface-primary-container);
+        box-shadow: 0 0 0 1px var(--color-primary);
+        color: var(--color-primary);
         font-weight: 600;
 
         &:hover {
-          background-color: var(--color-brand-hover);
-          border-color: var(--color-brand-hover);
+          filter: brightness(0.97);
         }
 
         &:active {
-          background-color: var(--color-brand-active);
-          border-color: var(--color-brand-active);
+          box-shadow: 0 0 0 1px var(--color-brand-active);
         }
 
         .drawo-chip-icon {
-          color: var(--color-surface-lowest);
+          color: var(--color-primary);
 
           svg {
             stroke: currentColor;
@@ -281,12 +280,13 @@
         }
 
         .drawo-chip-badge {
-          background-color: color-mix(in srgb, currentColor 22%, transparent);
-          color: currentColor;
+          background-color: var(--color-surface-lowest);
+          color: var(--color-primary);
+          font-weight: 700;
         }
 
         .drawo-collection-del {
-          color: currentColor;
+          color: var(--color-primary);
           opacity: 0.8;
 
           &:hover {
@@ -310,8 +310,8 @@
         font-size: 0.68rem;
         padding: 0.05rem 0.35rem;
         border-radius: 999px;
-        background-color: var(--color-surface-high);
-        color: var(--color-muted);
+        background-color: var(--color-surface-mid);
+        color: var(--color-on-surface);
         line-height: 1;
       }
 
@@ -383,26 +383,27 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.75rem 0.85rem;
-    border-radius: var(--border-radius-lg);
+    border-radius: var(--border-radius-lg, 8px);
     border: 1px solid var(--default-border-color);
-    background-color: var(--island-bg-color);
+    background-color: var(--color-surface-mid);
     cursor: pointer;
     box-sizing: border-box;
     min-width: 0;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 
     &:hover {
-      background-color: var(--button-hover-bg);
+      background-color: var(--color-surface-high);
       border-color: var(--color-border-outline-variant);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
 
     &.is-active {
       border-color: var(--color-primary);
-      background-color: var(--island-bg-color);
-      box-shadow: none;
+      background-color: var(--color-surface-mid);
+      box-shadow: 0 0 0 1px var(--color-primary);
 
       &:hover {
-        background-color: var(--button-hover-bg);
+        background-color: var(--color-surface-high);
       }
     }
 
