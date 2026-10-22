@@ -90,6 +90,15 @@ const BoardThumbnail: React.FC<{
   const [svgHtml, setSvgHtml] = useState<string | null>(() => {
     return thumbnailSvgCache.get(board.id) || board.previewSvg || null;
   });
+  const [canvasBg, setCanvasBg] = useState<string>(() => {
+    if (board.viewBackgroundColor) {
+      return board.viewBackgroundColor;
+    }
+    if (isActive && excalidrawAPI) {
+      return excalidrawAPI.getAppState().viewBackgroundColor || "#ffffff";
+    }
+    return "#ffffff";
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -97,17 +106,29 @@ const BoardThumbnail: React.FC<{
     const generatePreview = async () => {
       try {
         let elements: readonly ExcalidrawElement[] = [];
+        let viewBackgroundColor = board.viewBackgroundColor || "#ffffff";
 
         if (isActive && excalidrawAPI) {
           elements = excalidrawAPI.getSceneElements();
+          viewBackgroundColor =
+            excalidrawAPI.getAppState().viewBackgroundColor || "#ffffff";
         } else {
           const saved = await get<DrawoBoardScene>(
             board.id,
             workspaceBoardsStore,
           );
-          if (saved && Array.isArray(saved.elements)) {
-            elements = saved.elements;
+          if (saved) {
+            if (Array.isArray(saved.elements)) {
+              elements = saved.elements;
+            }
+            if (saved.appState?.viewBackgroundColor) {
+              viewBackgroundColor = saved.appState.viewBackgroundColor;
+            }
           }
+        }
+
+        if (isMounted) {
+          setCanvasBg(viewBackgroundColor);
         }
 
         const nonDeleted = getNonDeletedElements(elements);
@@ -123,10 +144,13 @@ const BoardThumbnail: React.FC<{
           data: {
             elements: nonDeleted,
             files: null,
+            appState: {
+              viewBackgroundColor,
+            },
           },
           config: {
             skipInliningFonts: true,
-            canvasBackgroundColor: false,
+            canvasBackgroundColor: viewBackgroundColor,
           },
         });
 
@@ -135,6 +159,9 @@ const BoardThumbnail: React.FC<{
         svg.style.width = "100%";
         svg.style.height = "100%";
         svg.style.objectFit = "contain";
+        if (viewBackgroundColor) {
+          svg.style.backgroundColor = viewBackgroundColor;
+        }
 
         const html = svg.outerHTML;
         thumbnailSvgCache.set(board.id, html);
@@ -152,11 +179,21 @@ const BoardThumbnail: React.FC<{
     return () => {
       isMounted = false;
     };
-  }, [board.id, board.updatedAt, board.elementCount, isActive, excalidrawAPI]);
+  }, [
+    board.id,
+    board.updatedAt,
+    board.elementCount,
+    board.viewBackgroundColor,
+    isActive,
+    excalidrawAPI,
+  ]);
 
   if (!svgHtml) {
     return (
-      <div className="drawo-thumb-empty">
+      <div
+        className="drawo-thumb-empty"
+        style={{ backgroundColor: canvasBg }}
+      >
         <span>Empty scene</span>
       </div>
     );
@@ -165,6 +202,7 @@ const BoardThumbnail: React.FC<{
   return (
     <div
       className="drawo-thumb-svg-wrapper"
+      style={{ backgroundColor: canvasBg, width: "100%", height: "100%" }}
       dangerouslySetInnerHTML={{ __html: svgHtml }}
     />
   );
@@ -1671,7 +1709,17 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                         })}
                         onClick={() => handleSelectBoard(board.id)}
                       >
-                        <div className="drawo-scene-card__thumb">
+                        <div
+                          className="drawo-scene-card__thumb"
+                          style={{
+                            backgroundColor:
+                              board.viewBackgroundColor ||
+                              (isActive && excalidrawAPI
+                                ? excalidrawAPI.getAppState().viewBackgroundColor
+                                : undefined) ||
+                              "#ffffff",
+                          }}
+                        >
                           <BoardThumbnail
                             board={board}
                             isActive={isActive}

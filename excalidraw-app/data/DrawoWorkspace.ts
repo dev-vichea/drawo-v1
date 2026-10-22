@@ -30,6 +30,7 @@ export interface DrawoBoardMeta {
   elementCount: number;
   updatedAt: number;
   createdAt: number;
+  viewBackgroundColor?: string;
 }
 
 export interface DrawoBoardScene {
@@ -224,12 +225,13 @@ export class DrawoWorkspace {
     const state = this.getState();
     const activeId = state.activeBoardId;
     const nonDeleted = getNonDeletedElements(elements);
+    const canvasBg = appState.viewBackgroundColor || "#ffffff";
 
     try {
       const scene: DrawoBoardScene = {
         elements: nonDeleted,
         appState: {
-          viewBackgroundColor: appState.viewBackgroundColor || "#ffffff",
+          viewBackgroundColor: canvasBg,
         },
       };
       await set(activeId, scene, workspaceBoardsStore);
@@ -243,6 +245,7 @@ export class DrawoWorkspace {
       currentBoard &&
       (forceMetaUpdate ||
         currentBoard.elementCount !== nonDeleted.length ||
+        currentBoard.viewBackgroundColor !== canvasBg ||
         now - lastMetaSyncTime > 5000)
     ) {
       lastMetaSyncTime = now;
@@ -251,6 +254,7 @@ export class DrawoWorkspace {
           ? {
               ...b,
               elementCount: nonDeleted.length,
+              viewBackgroundColor: canvasBg,
               updatedAt: now,
             }
           : b,
@@ -311,6 +315,7 @@ export class DrawoWorkspace {
       title?: string;
       collectionId?: string | null;
       initialElements?: readonly ExcalidrawElement[];
+      viewBackgroundColor?: string;
     },
   ) {
     await this.syncActiveBoardFromCanvas(
@@ -324,6 +329,7 @@ export class DrawoWorkspace {
     const nextNumber = state.boards.length + 1;
     const newBoardId = `board-${createId()}`;
     const elementsToSave = getNonDeletedElements(opts?.initialElements || []);
+    const initialBg = opts?.viewBackgroundColor || "#ffffff";
 
     const newBoard: DrawoBoardMeta = {
       id: newBoardId,
@@ -333,12 +339,13 @@ export class DrawoWorkspace {
       elementCount: elementsToSave.length,
       updatedAt: now,
       createdAt: now,
+      viewBackgroundColor: initialBg,
     };
 
     try {
       const scene: DrawoBoardScene = {
         elements: elementsToSave,
-        appState: { viewBackgroundColor: "#ffffff" },
+        appState: { viewBackgroundColor: initialBg },
       };
       await set(newBoardId, scene, workspaceBoardsStore);
     } catch {
@@ -355,7 +362,7 @@ export class DrawoWorkspace {
     api.updateScene({
       elements: restoredElements,
       appState: {
-        viewBackgroundColor: "#ffffff",
+        viewBackgroundColor: initialBg,
         selectedElementIds: {},
       },
       captureUpdate: CaptureUpdateAction.IMMEDIATELY,
@@ -385,6 +392,13 @@ export class DrawoWorkspace {
       sourceScene = undefined;
     }
 
+    const sourceBg =
+      boardId === state.activeBoardId
+        ? api.getAppState().viewBackgroundColor || "#ffffff"
+        : sourceScene?.appState?.viewBackgroundColor ||
+          sourceBoard.viewBackgroundColor ||
+          "#ffffff";
+
     const elements =
       boardId === state.activeBoardId
         ? getNonDeletedElements(api.getSceneElements())
@@ -394,6 +408,7 @@ export class DrawoWorkspace {
       title: `${sourceBoard.title} Copy`,
       collectionId: sourceBoard.collectionId,
       initialElements: elements,
+      viewBackgroundColor: sourceBg,
     });
   }
 

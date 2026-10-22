@@ -385,25 +385,25 @@
     padding: 0.75rem 0.85rem;
     border-radius: var(--border-radius-lg, 8px);
     border: 1px solid var(--default-border-color);
-    background-color: var(--color-surface-mid);
+    background-color: var(--island-bg-color, #ffffff);
     cursor: pointer;
     box-sizing: border-box;
     min-width: 0;
     transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 
     &:hover {
-      background-color: var(--color-surface-high);
+      background-color: var(--button-hover-bg);
       border-color: var(--color-border-outline-variant);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
 
     &.is-active {
       border-color: var(--color-primary);
-      background-color: var(--color-surface-mid);
+      background-color: var(--island-bg-color, #ffffff);
       box-shadow: 0 0 0 1px var(--color-primary);
 
       &:hover {
-        background-color: var(--color-surface-high);
+        background-color: var(--button-hover-bg);
       }
     }
 
