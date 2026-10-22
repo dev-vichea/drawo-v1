@@ -1035,7 +1035,10 @@ const ExcalidrawWrapper = () => {
         />
 
         <AppSidebar excalidrawAPI={excalidrawAPI} />
-        <WorkspaceDashboard excalidrawAPI={excalidrawAPI} />
+        <WorkspaceDashboard
+          excalidrawAPI={excalidrawAPI}
+          theme={editorTheme}
+        />
 
         {errorMessage && (
           <ErrorDialog onClose={() => setErrorMessage("")}>

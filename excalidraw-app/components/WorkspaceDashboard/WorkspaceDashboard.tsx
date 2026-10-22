@@ -2,7 +2,11 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import clsx from "clsx";
 import { get } from "idb-keyval";
 
-import { exportScene } from "@excalidraw/excalidraw";
+import {
+  exportScene,
+  THEME,
+  applyDarkModeFilter,
+} from "@excalidraw/excalidraw";
 import { getNonDeletedElements } from "@excalidraw/element";
 import { TextField } from "@excalidraw/excalidraw/components/TextField";
 import { FilledButton } from "@excalidraw/excalidraw/components/FilledButton";
@@ -21,7 +25,7 @@ import {
   HamburgerMenuIcon,
 } from "@excalidraw/excalidraw/components/icons";
 
-import type { ExcalidrawElement } from "@excalidraw/element/types";
+import type { ExcalidrawElement, Theme } from "@excalidraw/element/types";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 
 import { useAtom, useAtomValue } from "../../app-jotai";
@@ -45,6 +49,7 @@ import "./WorkspaceDashboard.scss";
 
 interface WorkspaceDashboardProps {
   excalidrawAPI: ExcalidrawImperativeAPI | null;
+  theme?: Theme;
 }
 
 export const formatRelativeTime = (timestamp: number): string => {
@@ -86,9 +91,12 @@ const BoardThumbnail: React.FC<{
   board: DrawoBoardMeta;
   isActive: boolean;
   excalidrawAPI: ExcalidrawImperativeAPI | null;
-}> = ({ board, isActive, excalidrawAPI }) => {
+  isDark: boolean;
+}> = ({ board, isActive, excalidrawAPI, isDark }) => {
+  const cacheKey = `${board.id}:${isDark ? "dark" : "light"}:${board.updatedAt || board.createdAt}:${board.elementCount}:${board.viewBackgroundColor || ""}`;
+
   const [svgHtml, setSvgHtml] = useState<string | null>(() => {
-    return thumbnailSvgCache.get(board.id) || board.previewSvg || null;
+    return thumbnailSvgCache.get(cacheKey) || null;
   });
   const [canvasBg, setCanvasBg] = useState<string>(() => {
     if (board.viewBackgroundColor) {
@@ -102,6 +110,11 @@ const BoardThumbnail: React.FC<{
 
   useEffect(() => {
     let isMounted = true;
+
+    const cached = thumbnailSvgCache.get(cacheKey);
+    if (cached) {
+      setSvgHtml(cached);
+    }
 
     const generatePreview = async () => {
       try {
@@ -139,6 +152,8 @@ const BoardThumbnail: React.FC<{
           return;
         }
 
+        const effectiveBg = applyDarkModeFilter(viewBackgroundColor, isDark);
+
         const svg = await exportScene({
           type: "svg",
           data: {
@@ -150,6 +165,7 @@ const BoardThumbnail: React.FC<{
           },
           config: {
             skipInliningFonts: true,
+            theme: isDark ? THEME.DARK : THEME.LIGHT,
             canvasBackgroundColor: viewBackgroundColor,
           },
         });
@@ -159,12 +175,10 @@ const BoardThumbnail: React.FC<{
         svg.style.width = "100%";
         svg.style.height = "100%";
         svg.style.objectFit = "contain";
-        if (viewBackgroundColor) {
-          svg.style.backgroundColor = viewBackgroundColor;
-        }
+        svg.style.backgroundColor = effectiveBg;
 
         const html = svg.outerHTML;
-        thumbnailSvgCache.set(board.id, html);
+        thumbnailSvgCache.set(cacheKey, html);
 
         if (isMounted) {
           setSvgHtml(html);
@@ -180,21 +194,28 @@ const BoardThumbnail: React.FC<{
       isMounted = false;
     };
   }, [
+    cacheKey,
     board.id,
     board.updatedAt,
     board.elementCount,
     board.viewBackgroundColor,
     isActive,
     excalidrawAPI,
+    isDark,
   ]);
+
+  const effectiveCanvasBg = applyDarkModeFilter(canvasBg, isDark);
 
   if (!svgHtml) {
     return (
       <div
         className="drawo-thumb-empty"
-        style={{ backgroundColor: canvasBg }}
+        style={{ backgroundColor: effectiveCanvasBg }}
       >
-        <span>Empty scene</span>
+        <div className="drawo-thumb-empty__grid" />
+        <div className="drawo-thumb-empty__content">
+          <span className="drawo-thumb-empty__text">Empty scene</span>
+        </div>
       </div>
     );
   }
@@ -202,7 +223,11 @@ const BoardThumbnail: React.FC<{
   return (
     <div
       className="drawo-thumb-svg-wrapper"
-      style={{ backgroundColor: canvasBg, width: "100%", height: "100%" }}
+      style={{
+        backgroundColor: effectiveCanvasBg,
+        width: "100%",
+        height: "100%",
+      }}
       dangerouslySetInnerHTML={{ __html: svgHtml }}
     />
   );
@@ -323,10 +348,45 @@ const DoodleBackground: React.FC = () => (
 
 export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
   excalidrawAPI,
+  theme,
 }) => {
   const [isOpen, setIsOpen] = useAtom(isWorkspaceDashboardOpenAtom);
   const workspace = useAtomValue(drawoWorkspaceAtom);
   const userProfile = useAtomValue(drawoAuthAtom);
+
+  const [domIsDark, setDomIsDark] = useState<boolean>(() => {
+    if (typeof document !== "undefined") {
+      return (
+        document.querySelector(".excalidraw")?.classList.contains("theme--dark") ||
+        document.body.classList.contains("theme--dark") ||
+        false
+      );
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const updateDark = () => {
+      const dark =
+        document.querySelector(".excalidraw")?.classList.contains("theme--dark") ||
+        document.body.classList.contains("theme--dark") ||
+        false;
+      setDomIsDark(dark);
+    };
+    updateDark();
+    const observer = new MutationObserver(updateDark);
+    const el = document.querySelector(".excalidraw") || document.body;
+    observer.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const isDark =
+    theme === THEME.DARK ||
+    excalidrawAPI?.getAppState().theme === "dark" ||
+    domIsDark;
 
   const parseAccountTabFromPath = (path: string): AccountSettingsTab => {
     if (path === "/account/preferences") {
@@ -1699,6 +1759,16 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                     const isActive = board.id === workspace.activeBoardId;
                     const isEditing = editingBoardId === board.id;
                     const isMenuOpen = activeMenuBoardId === board.id;
+                    const rawBoardBg =
+                      board.viewBackgroundColor ||
+                      (isActive && excalidrawAPI
+                        ? excalidrawAPI.getAppState().viewBackgroundColor
+                        : undefined) ||
+                      "#ffffff";
+                    const effectiveThumbBg = applyDarkModeFilter(
+                      rawBoardBg,
+                      isDark,
+                    );
 
                     return (
                       <div
@@ -1712,18 +1782,14 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                         <div
                           className="drawo-scene-card__thumb"
                           style={{
-                            backgroundColor:
-                              board.viewBackgroundColor ||
-                              (isActive && excalidrawAPI
-                                ? excalidrawAPI.getAppState().viewBackgroundColor
-                                : undefined) ||
-                              "#ffffff",
+                            backgroundColor: effectiveThumbBg,
                           }}
                         >
                           <BoardThumbnail
                             board={board}
                             isActive={isActive}
                             excalidrawAPI={excalidrawAPI}
+                            isDark={isDark}
                           />
                           <div className="drawo-scene-card__time">
                             {formatRelativeTime(
