@@ -1,6 +1,7 @@
 import { DefaultSidebar, DropdownMenu, Sidebar, THEME } from "@excalidraw/excalidraw";
 import {
   checkIcon,
+  CloseIcon,
   DotsIcon,
   DuplicateIcon,
   ExternalLinkIcon,
@@ -331,7 +332,7 @@ export const AppSidebar: React.FC<{
                         setSelectedFilter("all");
                       }}
                     >
-                      ✕
+                      {CloseIcon}
                     </span>
                   )}
               </button>

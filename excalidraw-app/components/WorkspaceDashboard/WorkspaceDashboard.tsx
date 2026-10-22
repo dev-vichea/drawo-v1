@@ -18,6 +18,7 @@ import {
   CloseIcon,
   DotsHorizontalIcon,
   presentationIcon,
+  HamburgerMenuIcon,
 } from "@excalidraw/excalidraw/components/icons";
 
 import type { ExcalidrawElement } from "@excalidraw/element/types";
@@ -939,7 +940,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                       {isAuthBusy
                         ? "Please wait..."
                         : authMode === "signup"
-                        ? "+ Sign up & continue"
+                        ? "Sign up & continue"
                         : "Sign in"}
                     </button>
                   </form>
@@ -1005,13 +1006,13 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                     </button>
                   </div>
 
-                  {/* Primary CTA: + Create workspace */}
+                  {/* Primary CTA: Create workspace */}
                   <button
                     type="button"
                     className="drawo-onboard-primary-btn"
                     onClick={() => navigatePage("create-workspace")}
                   >
-                    <span>+</span>
+                    {PlusIcon}
                     <span>Create workspace</span>
                   </button>
 
@@ -1099,7 +1100,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                       className="drawo-onboard-primary-btn"
                       disabled={isAuthBusy}
                     >
-                      <span>+</span>
+                      {PlusIcon}
                       <span>
                         {isAuthBusy
                           ? "Creating workspace..."
@@ -1283,7 +1284,8 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                     setScreenOverride("create-workspace");
                   }}
                 >
-                  + Create new workspace
+                  {PlusIcon}
+                  <span>Create new workspace</span>
                 </button>
                 <button
                   type="button"
@@ -1482,20 +1484,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                 title="Open collections menu"
                 aria-label="Open collections menu"
               >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
+                {HamburgerMenuIcon}
               </button>
 
               <div className="drawo-main-header__actions">
@@ -1609,7 +1598,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                 </div>
                 <div className="drawo-action-banner__content">
                   <div className="drawo-action-banner__title">
-                    Import scenes +
+                    Import scenes
                   </div>
                   <div className="drawo-action-banner__sub">
                     Upload .excalidraw or .json
@@ -1623,7 +1612,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                 </div>
                 <div className="drawo-action-banner__content">
                   <div className="drawo-action-banner__title">
-                    Create scene +
+                    Create scene
                   </div>
                   <div className="drawo-action-banner__sub">
                     Start a fresh blank canvas
@@ -1651,7 +1640,7 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                   <p>
                     {selectedNav === "trash"
                       ? "Deleted boards will appear here."
-                      : "Click 'Create scene +' above or import existing .excalidraw files."}
+                      : "Click 'Create scene' above or import existing .excalidraw files."}
                   </p>
                   {selectedNav !== "trash" && (
                     <FilledButton
@@ -1911,10 +1900,11 @@ export const WorkspaceDashboard: React.FC<WorkspaceDashboardProps> = ({
                     size="large"
                     variant="filled"
                     color="primary"
-                    label="+ Create New Workspace"
+                    icon={PlusIcon}
+                    label="Create New Workspace"
                     onClick={() => setScreenOverride("create-workspace")}
                   >
-                    + Create New Workspace
+                    Create New Workspace
                   </FilledButton>
                   <FilledButton
                     size="large"

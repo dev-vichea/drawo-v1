@@ -162,22 +162,23 @@
         width: 1.875rem;
         height: 1.875rem;
         padding: 0;
-        border-radius: var(--border-radius-md);
-        border: 1px solid var(--default-border-color);
-        background-color: var(--island-bg-color);
+        border-radius: var(--border-radius-lg, 8px);
+        border: none;
+        box-shadow: 0 0 0 1px var(--color-surface-lowest);
+        background-color: var(--color-surface-low);
         color: var(--color-on-surface);
         cursor: pointer;
-        transition: background-color 0.15s ease, border-color 0.15s ease,
+        transition: background-color 0.15s ease, box-shadow 0.15s ease,
           color 0.15s ease, transform 0.05s ease;
 
         &:hover {
-          background-color: var(--button-hover-bg);
-          border-color: var(--color-primary);
-          color: var(--color-primary);
+          background-color: var(--color-surface-mid);
+          color: var(--color-on-surface);
         }
 
         &:active {
           transform: scale(0.96);
+          box-shadow: 0 0 0 1px var(--color-brand-active);
         }
 
         svg {
@@ -187,13 +188,16 @@
 
         &--primary {
           background-color: var(--color-primary);
-          border-color: var(--color-primary);
+          box-shadow: none;
           color: #ffffff;
 
           &:hover {
             background-color: var(--color-brand-hover, #1971c2);
-            border-color: var(--color-brand-hover, #1971c2);
             color: #ffffff;
+          }
+
+          &:active {
+            box-shadow: 0 0 0 1px var(--color-brand-active);
           }
 
           svg {
@@ -312,11 +316,17 @@
       }
 
       .drawo-collection-del {
-        margin-left: 0.1rem;
-        font-size: 0.7rem;
-        line-height: 1;
+        margin-left: 0.15rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         opacity: 0.6;
-        padding: 0 0.15rem;
+        padding: 0 0.1rem;
+
+        svg {
+          width: 0.65rem;
+          height: 0.65rem;
+        }
 
         &:hover {
           opacity: 1;
