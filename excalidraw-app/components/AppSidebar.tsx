@@ -1,7 +1,9 @@
-import { DefaultSidebar, Sidebar, THEME } from "@excalidraw/excalidraw";
+import { DefaultSidebar, DropdownMenu, Sidebar, THEME } from "@excalidraw/excalidraw";
 import {
   checkIcon,
+  DotsIcon,
   DuplicateIcon,
+  ExternalLinkIcon,
   messageCircleIcon,
   pencilIcon,
   PlusIcon,
@@ -145,10 +147,17 @@ export const AppSidebar: React.FC<{
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
+  const [isColMenuOpen, setIsColMenuOpen] = useState(false);
   const [isCreatingCol, setIsCreatingCol] = useState(false);
   const [newColName, setNewColName] = useState("");
   const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+
+  const isCustomColSelected =
+    selectedFilter !== "all" && selectedFilter !== "favorites";
+  const visibleCustomCol = isCustomColSelected
+    ? workspace.collections.find((col) => col.id === selectedFilter)
+    : workspace.collections[0];
 
   const filteredBoards = workspace.boards.filter((board) => {
     const matchesSearch = board.title
@@ -214,33 +223,27 @@ export const AppSidebar: React.FC<{
           data-testid="drawo-workspace-panel"
         >
           <div className="drawo-workspace-header">
-            <div className="drawo-workspace-header__top">
-              <h3 className="drawo-workspace-header__title">
-                <span className="drawo-workspace-header__icon">{folderIcon}</span>
-                <span>Workspace</span>
-              </h3>
-            </div>
+            <h3 className="drawo-workspace-header__title">
+              <span className="drawo-workspace-header__icon">{folderIcon}</span>
+              <span>Workspace</span>
+            </h3>
             <div className="drawo-workspace-header__actions">
-              <FilledButton
-                size="medium"
-                variant="outlined"
-                label="Full Dashboard"
-                fullWidth
-                className="drawo-ws-header-btn"
+              <button
+                type="button"
+                className="drawo-ws-icon-btn"
+                title="Full Dashboard"
+                aria-label="Full Dashboard"
                 onClick={() => {
                   setIsDashboardOpen(true);
                 }}
               >
-                Dashboard ↗
-              </FilledButton>
-              <FilledButton
-                size="medium"
-                variant="filled"
-                color="primary"
-                icon={PlusIcon}
-                label="New Board"
-                fullWidth
-                className="drawo-ws-header-btn"
+                {ExternalLinkIcon}
+              </button>
+              <button
+                type="button"
+                className="drawo-ws-icon-btn drawo-ws-icon-btn--primary"
+                title="New Board"
+                aria-label="New Board"
                 onClick={() => {
                   if (excalidrawAPI) {
                     const colId =
@@ -253,8 +256,8 @@ export const AppSidebar: React.FC<{
                   }
                 }}
               >
-                New Board
-              </FilledButton>
+                {PlusIcon}
+              </button>
             </div>
           </div>
 
@@ -298,48 +301,116 @@ export const AppSidebar: React.FC<{
               <span>Favorites</span>
             </button>
 
-            {workspace.collections.map((col) => (
+            {visibleCustomCol && (
               <button
-                key={col.id}
                 type="button"
                 className={`drawo-collection-chip ${
-                  selectedFilter === col.id ? "is-active" : ""
+                  selectedFilter === visibleCustomCol.id ? "is-active" : ""
                 }`}
-                onClick={() => setSelectedFilter(col.id)}
+                onClick={() => setSelectedFilter(visibleCustomCol.id)}
               >
                 <span
                   className="drawo-chip-icon"
                   style={
-                    selectedFilter === col.id ? undefined : { color: col.color }
+                    selectedFilter === visibleCustomCol.id
+                      ? undefined
+                      : { color: visibleCustomCol.color }
                   }
                 >
                   {folderIcon}
                 </span>
-                <span>{col.name}</span>
-                {selectedFilter === col.id && workspace.collections.length > 1 && (
-                  <span
-                    className="drawo-collection-del"
-                    title="Delete collection"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      DrawoWorkspace.deleteCollection(col.id);
-                      setSelectedFilter("all");
+                <span className="drawo-chip-text">{visibleCustomCol.name}</span>
+                {selectedFilter === visibleCustomCol.id &&
+                  workspace.collections.length > 1 && (
+                    <span
+                      className="drawo-collection-del"
+                      title="Delete collection"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        DrawoWorkspace.deleteCollection(visibleCustomCol.id);
+                        setSelectedFilter("all");
+                      }}
+                    >
+                      ✕
+                    </span>
+                  )}
+              </button>
+            )}
+
+            <div className="drawo-collections-more-wrap">
+              <DropdownMenu open={isColMenuOpen}>
+                <DropdownMenu.Trigger
+                  onToggle={() => setIsColMenuOpen((prev) => !prev)}
+                  title="More collections & actions"
+                  aria-label="More collections & actions"
+                >
+                  {DotsIcon}
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content
+                  onClickOutside={() => setIsColMenuOpen(false)}
+                  onSelect={() => setIsColMenuOpen(false)}
+                  className="drawo-collections-menu"
+                >
+                  <DropdownMenu.Item
+                    onSelect={() => setSelectedFilter("all")}
+                    icon={selectedFilter === "all" ? checkIcon : undefined}
+                  >
+                    All Boards ({workspace.boards.length})
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    onSelect={() => setSelectedFilter("favorites")}
+                    icon={
+                      selectedFilter === "favorites"
+                        ? checkIcon
+                        : starIcon(true)
+                    }
+                  >
+                    Favorites (
+                    {workspace.boards.filter((b) => b.isFavorite).length})
+                  </DropdownMenu.Item>
+                  {workspace.collections.length > 0 && (
+                    <DropdownMenu.Separator />
+                  )}
+                  {workspace.collections.map((col) => {
+                    const isSelected = selectedFilter === col.id;
+                    const boardCount = workspace.boards.filter(
+                      (b) => b.collectionId === col.id,
+                    ).length;
+                    return (
+                      <DropdownMenu.Item
+                        key={col.id}
+                        onSelect={() => setSelectedFilter(col.id)}
+                        icon={isSelected ? checkIcon : folderIcon}
+                      >
+                        {col.name} ({boardCount})
+                      </DropdownMenu.Item>
+                    );
+                  })}
+                  <DropdownMenu.Separator />
+                  <DropdownMenu.Item
+                    icon={PlusIcon}
+                    onSelect={() => {
+                      setIsCreatingCol(true);
                     }}
                   >
-                    ✕
-                  </span>
-                )}
-              </button>
-            ))}
-
-            <button
-              type="button"
-              className="drawo-collection-chip drawo-collection-chip--new"
-              onClick={() => setIsCreatingCol((prev) => !prev)}
-            >
-              <span className="drawo-chip-icon">{PlusIcon}</span>
-              <span>Folder</span>
-            </button>
+                    New Collection...
+                  </DropdownMenu.Item>
+                  {selectedFilter !== "all" &&
+                    selectedFilter !== "favorites" &&
+                    workspace.collections.length > 1 && (
+                      <DropdownMenu.Item
+                        icon={TrashIcon}
+                        onSelect={() => {
+                          DrawoWorkspace.deleteCollection(selectedFilter);
+                          setSelectedFilter("all");
+                        }}
+                      >
+                        Delete collection
+                      </DropdownMenu.Item>
+                    )}
+                </DropdownMenu.Content>
+              </DropdownMenu>
+            </div>
           </div>
 
           {isCreatingCol && (
