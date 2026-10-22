@@ -6,6 +6,7 @@ import {
   reconcileElements,
 } from "@excalidraw/excalidraw";
 import { ErrorDialog } from "@excalidraw/excalidraw/components/ErrorDialog";
+import ConfirmDialog from "@excalidraw/excalidraw/components/ConfirmDialog";
 import { APP_NAME, cloneJSON, EVENT, toBrandedType } from "@excalidraw/common";
 import {
   IDLE_THRESHOLD,
@@ -95,6 +96,7 @@ import type {
   SocketUpdateDataSource,
   SyncableExcalidrawElement,
 } from "../data";
+import { shareDialogStateAtom } from "../share/ShareDialog";
 
 export const collabAPIAtom = atom<CollabAPI | null>(null);
 export const isCollaboratingAtom = atom(false);
@@ -106,6 +108,7 @@ interface CollabState {
   dialogNotifiedErrors: Record<string, boolean>;
   username: string;
   activeRoomLink: string | null;
+  isConfirmingStopSession: boolean;
 }
 
 export const activeRoomLinkAtom = atom<string | null>(null);
@@ -152,6 +155,7 @@ class Collab extends PureComponent<CollabProps, CollabState> {
       dialogNotifiedErrors: {},
       username: importUsernameFromLocalStorage() || "",
       activeRoomLink: null,
+      isConfirmingStopSession: false,
     };
     this.portal = new Portal(this);
     this.fileManager = new FileManager({
@@ -362,7 +366,36 @@ class Collab extends PureComponent<CollabProps, CollabState> {
     }
   };
 
-  stopCollaboration = (keepRemoteState = true) => {
+  stopCollaboration = (keepRemoteState = true, confirmed = false) => {
+    if (!keepRemoteState) {
+      this.queueBroadcastAllElements.cancel();
+      this.queueSaveToFirebase.cancel();
+      this.loadImageFiles.cancel();
+      this.resetErrorIndicator(true);
+
+      this.saveCollabRoomToFirebase(
+        getSyncableElements(
+          this.excalidrawAPI.getSceneElementsIncludingDeleted(),
+        ),
+      );
+
+      if (this.portal.socket && this.fallbackInitializationHandler) {
+        this.portal.socket.off(
+          "connect_error",
+          this.fallbackInitializationHandler,
+        );
+      }
+
+      LocalData.fileStorage.reset();
+      this.destroySocketClient();
+      return;
+    }
+
+    if (!confirmed) {
+      this.setState({ isConfirmingStopSession: true });
+      return;
+    }
+
     this.queueBroadcastAllElements.cancel();
     this.queueSaveToFirebase.cancel();
     this.loadImageFiles.cancel();
@@ -381,33 +414,28 @@ class Collab extends PureComponent<CollabProps, CollabState> {
       );
     }
 
-    if (!keepRemoteState) {
-      LocalData.fileStorage.reset();
-      this.destroySocketClient();
-    } else if (window.confirm(t("alerts.collabStopOverridePrompt"))) {
-      // hack to ensure that we prefer we disregard any new browser state
-      // that could have been saved in other tabs while we were collaborating
-      resetBrowserStateVersions();
+    // hack to ensure that we prefer we disregard any new browser state
+    // that could have been saved in other tabs while we were collaborating
+    resetBrowserStateVersions();
 
-      window.history.pushState({}, APP_NAME, window.location.origin);
-      this.destroySocketClient();
+    window.history.pushState({}, APP_NAME, window.location.origin);
+    this.destroySocketClient();
 
-      LocalData.fileStorage.reset();
+    LocalData.fileStorage.reset();
 
-      const elements = this.excalidrawAPI
-        .getSceneElementsIncludingDeleted()
-        .map((element) => {
-          if (isImageElement(element) && element.status === "saved") {
-            return newElementWith(element, { status: "pending" });
-          }
-          return element;
-        });
-
-      this.excalidrawAPI.updateScene({
-        elements,
-        captureUpdate: CaptureUpdateAction.NEVER,
+    const elements = this.excalidrawAPI
+      .getSceneElementsIncludingDeleted()
+      .map((element) => {
+        if (isImageElement(element) && element.status === "saved") {
+          return newElementWith(element, { status: "pending" });
+        }
+        return element;
       });
-    }
+
+    this.excalidrawAPI.updateScene({
+      elements,
+      captureUpdate: CaptureUpdateAction.NEVER,
+    });
   };
 
   private destroySocketClient = (opts?: { isUnload: boolean }) => {
@@ -468,7 +496,7 @@ class Collab extends PureComponent<CollabProps, CollabState> {
       );
       return JSON.parse(decodedData);
     } catch (error) {
-      window.alert(t("alerts.decryptFailed"));
+      this.setErrorDialog(t("alerts.decryptFailed"));
       console.error(error);
       return {
         type: WS_SUBTYPES.INVALID_RESPONSE,
@@ -1066,7 +1094,7 @@ class Collab extends PureComponent<CollabProps, CollabState> {
   };
 
   render() {
-    const { errorMessage } = this.state;
+    const { errorMessage, isConfirmingStopSession } = this.state;
 
     return (
       <>
@@ -1074,6 +1102,51 @@ class Collab extends PureComponent<CollabProps, CollabState> {
           <ErrorDialog onClose={() => this.setErrorDialog(null)}>
             {errorMessage}
           </ErrorDialog>
+        )}
+        {isConfirmingStopSession && (
+          <ConfirmDialog
+            onConfirm={() => {
+              this.setState({ isConfirmingStopSession: false });
+              this.stopCollaboration(true, true);
+              appJotaiStore.set(shareDialogStateAtom, { isOpen: false });
+            }}
+            onCancel={() => {
+              this.setState({ isConfirmingStopSession: false });
+            }}
+            title={t("roomDialog.button_stopSession")}
+            confirmText={t("roomDialog.button_stopSession")}
+            cancelText={t("buttons.cancel")}
+            className="stop-collaboration-confirm-dialog"
+          >
+            <div className="stop-collaboration-confirm-content">
+              <div className="stop-collaboration-confirm-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
+              <div className="stop-collaboration-confirm-text">
+                <p className="stop-collaboration-confirm-main">
+                  {t("alerts.collabStopOverridePrompt").split("\n\n")[0]}
+                </p>
+                {t("alerts.collabStopOverridePrompt").split("\n\n")[1] && (
+                  <p className="stop-collaboration-confirm-sub">
+                    {t("alerts.collabStopOverridePrompt").split("\n\n")[1]}
+                  </p>
+                )}
+              </div>
+            </div>
+          </ConfirmDialog>
         )}
       </>
     );
