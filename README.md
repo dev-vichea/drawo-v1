@@ -1,7 +1,7 @@
 # ✏️ Drawo — Collaborative Whiteboard & Workspaces
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/excalidraw/excalidraw/master/public/og-image-3.png" alt="Drawo Preview Banner" width="800" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
+  <img src="./public/og-image.png" alt="Drawo Preview Banner" width="800" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
 </p>
 
 <p align="center">
