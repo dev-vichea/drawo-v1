@@ -126,8 +126,6 @@ For testing and portfolio demonstrations, the following accounts are pre-configu
 | Role | Email | Password | Quick Action |
 | --- | --- | --- | --- |
 | **Demo User** | `demo@drawo.app` | `drawo123456` | Click **⚡ demo@drawo.app** on login modal |
-| **Admin User** | `vicheachheng001@gmail.com` | `drawo123456` | Click **⚡ vicheachheng001...** chip |
-| **Owner User** | `orizyy08@gmail.com` | `drawo123456` | Manual input / Google sign-in |
 
 ---
 
